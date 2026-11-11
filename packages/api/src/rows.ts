@@ -1,4 +1,4 @@
-import type { Role, Ticket } from '@repair/core';
+import type { Role, Ticket, TicketEventAction } from '@repair/core';
 import type { Tables } from './database.types';
 
 export type Comment = { id: number; ticketId: string; authorId: string; body: string; createdAt: string };
@@ -7,7 +7,7 @@ export type TicketEvent = {
   id: number;
   ticketId: string;
   actorId: string | null;
-  action: Tables<'ticket_events'>['action'];
+  action: TicketEventAction;
   fromStatus: Ticket['status'] | null;
   toStatus: Ticket['status'] | null;
   detail: string | null;
@@ -16,7 +16,15 @@ export type TicketEvent = {
 
 export type Photo = { id: number; url: string };
 
-export type TicketDetail = Ticket & { photos: Photo[]; comments: Comment[]; events: TicketEvent[] };
+export type TicketDetail = Ticket & {
+  categoryName: string | null;
+  equipment: { assetTag: string; name: string } | null;
+  // display name by profile id, for the reporter, assignee, comment authors and event actors
+  people: Record<string, string>;
+  photos: Photo[];
+  comments: Comment[];
+  events: TicketEvent[];
+};
 
 export const toTicket = (r: Tables<'tickets'>): Ticket => ({
   id: r.id,

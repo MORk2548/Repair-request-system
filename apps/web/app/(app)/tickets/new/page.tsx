@@ -1,6 +1,6 @@
 import { listCategories } from '@repair/api';
-import { TicketForm } from '../../../components/TicketForm';
-import { createServerDb } from '../../../lib/supabase-server';
+import { TicketForm } from '../../../../components/TicketForm';
+import { createServerDb } from '../../../../lib/supabase-server';
 
 export default async function NewTicketPage() {
   const categories = await listCategories(await createServerDb());
