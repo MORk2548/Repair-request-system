@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(32);
+select plan(34);
 
 create function pg_temp.act_as(p_user uuid) returns void language plpgsql as $$
 begin
@@ -26,6 +26,8 @@ insert into public.profiles (id, display_name, role, is_active) values
   ('00000000-0000-0000-0000-00000000000f', 'Inactive Admin', 'admin', false);
 
 insert into public.categories (name, is_active) values ('test-active', true), ('test-inactive', false);
+insert into public.departments (name, is_active) values ('test-inactive-dept', false);
+insert into public.equipment (asset_tag, name, status) values ('TEST-RETIRED', 'Retired printer', 'retired');
 
 insert into public.tickets (id, client_request_id, title, description, category_id, location, status, reporter_id, assignee_id)
 select v.id, gen_random_uuid(), v.title, 'description', (select id from public.categories where name = 'test-active'), 'Building A', v.status::public.ticket_status, v.reporter_id, v.assignee_id
@@ -47,7 +49,9 @@ select set_eq(
   $$select id from public.tickets where id::text like '10000000-%'$$,
   $$values ('10000000-0000-0000-0000-000000000001'::uuid), ('10000000-0000-0000-0000-000000000003')$$,
   'reporter A sees only own tickets');
-select is_empty($$select * from public.categories where name = 'test-inactive'$$, 'non-admin does not see an inactive category');
+select isnt_empty($$select * from public.categories where name = 'test-inactive'$$, 'a reporter reads an inactive category so old tickets keep its name');
+select isnt_empty($$select * from public.departments where name = 'test-inactive-dept'$$, 'a reporter reads an inactive department');
+select isnt_empty($$select * from public.equipment where asset_tag = 'TEST-RETIRED'$$, 'a reporter reads retired equipment');
 select throws_ok($$insert into public.categories (name) values ('reporter category')$$, '42501', null, 'reporter cannot insert a category');
 select is_empty($$select * from public.technician_options$$, 'reporter sees no technician options');
 
