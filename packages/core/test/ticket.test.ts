@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { createTicketSchema, resolutionSchema } from '../src/index';
+import { commentSchema, createTicketSchema, resolutionSchema } from '../src/index';
 
 const base = { title: 'แอร์ไม่เย็น', description: 'ห้องประชุม 2 แอร์ไม่เย็นตั้งแต่เช้า', categoryId: 3, location: 'ตึก A ชั้น 3', clientRequestId: crypto.randomUUID() };
 
@@ -42,4 +42,10 @@ test('empty description, location and resolution show their Thai messages', () =
 test('resolution limit is 1000 code points', () => {
   expect(resolutionSchema.safeParse('😀'.repeat(1000)).success).toBe(true);
   expect(messages(resolutionSchema.safeParse('😀'.repeat(1001)))).toContain('วิธีแก้ไขยาวได้ไม่เกิน 1000 ตัวอักษร');
+});
+test('comment is trimmed, required and at most 1000 code points', () => {
+  expect(commentSchema.parse('  ขอบคุณครับ  ')).toBe('ขอบคุณครับ');
+  expect(messages(commentSchema.safeParse('   '))).toContain('กรุณากรอกความคิดเห็น');
+  expect(commentSchema.safeParse('😀'.repeat(1000)).success).toBe(true);
+  expect(messages(commentSchema.safeParse('😀'.repeat(1001)))).toContain('ความคิดเห็นยาวได้ไม่เกิน 1000 ตัวอักษร');
 });

@@ -77,10 +77,10 @@
 package.json, pnpm-workspace.yaml, tsconfig.base.json
 packages/core/src/{status.ts, ticket.ts, notify.ts, email.ts, index.ts}   # กฎล้วน ไม่แตะเครือข่าย
 packages/core/test/{status.test.ts, ticket.test.ts, notify.test.ts, email.test.ts, parity.test.ts}
-packages/api/src/{client.ts, tickets.ts, photos.ts, comments.ts, lookups.ts, admin.ts, errors.ts, database.types.ts}
+packages/api/src/{client.ts, rows.ts, postgrest.ts, tickets.ts, photos.ts, comments.ts, lookups.ts, admin.ts, errors.ts, database.types.ts}
 packages/api/test/*.test.ts                                      # รันกับ Supabase local
-supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_transition.sql, 0004_reports.sql}
-supabase/tests/{ticket_no.sql, rls.sql, transition.sql, reports.sql}
+supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_transition.sql, 0004_photo_owner_delete.sql, 0005_reports.sql}
+supabase/tests/{ticket_no.sql, rls.sql, transition.sql, photo_delete.sql, reports.sql}
 supabase/seed.sql                                                # ข้อมูล dev จากโปรเจกต์ PHP เดิม
 supabase/functions/notify-ticket-event/{index.ts, process.ts, process.test.ts, email.ts}
 supabase/functions/admin-users/{index.ts, handler.ts, handler.test.ts}
@@ -268,8 +268,9 @@ test('whitespace-only resolution is rejected', () => expect(resolutionSchema.saf
 ### Task 5: แพ็กเกจ API (`packages/api`)
 
 **Files:**
-- Create: `packages/api/src/{client.ts, tickets.ts, photos.ts, comments.ts, errors.ts}`, `packages/api/src/database.types.ts` (gen จาก `supabase gen types typescript --local`)
-- Test: `packages/api/test/{tickets,photos,comments}.test.ts`
+- Create: `packages/api/src/{client.ts, rows.ts, postgrest.ts, tickets.ts, photos.ts, comments.ts, lookups.ts, errors.ts, index.ts}`, `packages/api/src/database.types.ts` (gen ด้วย `corepack pnpm gen:types`), `supabase/migrations/0004_photo_owner_delete.sql` (ให้ผู้อัปโหลดลบไฟล์ของตัวเองที่ยังไม่ผูกกับ `ticket_attachments` ได้ เพื่อเก็บกวาดเมื่อ insert ล้มเหลว)
+- Modify: `packages/core/src/ticket.ts` (เพิ่ม `commentSchema`)
+- Test: `packages/api/test/{tickets,photos,comments,lookups}.test.ts`, `packages/api/test/helpers.ts`, `supabase/tests/photo_delete.sql`, `packages/core/test/ticket.test.ts`
 
 **Interfaces:**
 - Consumes: `CreateTicketInput`, `Ticket`, `TicketStatus` (core); RPC/ตารางจาก Task 3–4
@@ -277,15 +278,15 @@ test('whitespace-only resolution is rejected', () => expect(resolutionSchema.saf
   - `type Db = SupabaseClient<Database>`
   - `createTicket(db: Db, input: CreateTicketInput): Promise<Ticket>` — idempotent ตาม `clientRequestId`
   - `listTickets(db: Db, f: { status?: TicketStatus; limit?: number; cursor?: string }): Promise<{ items: Ticket[]; nextCursor: string | null }>` (เรียงใหม่สุดก่อน, `limit` ค่าเริ่มต้น 20)
-  - `getTicket(db: Db, id: string): Promise<TicketDetail>` โดย `TicketDetail = Ticket & { photos: { id: string; url: string }[]; comments: Comment[]; events: TicketEvent[] }` (url เป็น signed URL อายุ 1 ชั่วโมง)
+  - `getTicket(db: Db, id: string): Promise<TicketDetail | null>` โดย `TicketDetail = Ticket & { photos: { id: number; url: string }[]; comments: Comment[]; events: TicketEvent[] }` (url เป็น signed URL อายุ 1 ชั่วโมง; คืน `null` เมื่อไม่มีใบนั้นหรือมองไม่เห็น เพราะ RLS ทำให้สองกรณีเหมือนกัน; comments/events เรียงเก่าสุดก่อน)
   - `transitionTicket(db: Db, a: { ticketId: string; to: TicketStatus; expectedVersion: number; assigneeId?: string; resolution?: string }): Promise<Ticket>`
-  - `addComment(db: Db, ticketId: string, body: string): Promise<Comment>` (body 1–1000 ตัวอักษรหลัง trim)
-  - `attachPhoto(db: Db, ticketId: string, file: { data: Blob | ArrayBuffer; mime: string; size: number; name: string }): Promise<{ id: string }>` (เขียน `ticket_attachments` พร้อม `uploader_id` และ `file_name`)
+  - `addComment(db: Db, ticketId: string, body: string): Promise<Comment>` (ตรวจด้วย `commentSchema` ของ core: 1–1000 ตัวอักษรหลัง trim)
+  - `attachPhoto(db: Db, ticketId: string, file: { data: Blob | ArrayBuffer; mime: string; size: number; name: string }): Promise<{ id: number }>` (เขียน `ticket_attachments` พร้อม `uploader_id` และ `file_name`; ถ้า insert ล้มเหลวหลังอัปโหลด จะลบไฟล์ที่อัปโหลดทิ้งก่อนโยน error)
   - `reassignTicket(db: Db, a: { ticketId: string; expectedVersion: number; assigneeId: string; reason: string }): Promise<Ticket>`
-  - `lookups.ts`: `listCategories(db)`, `listDepartments(db)`, `listEquipment(db, { q?: string })` (ค้น `asset_tag`/`name` แบบ `ilike`, ไม่เกิน 20 แถว), `listTechnicians(db)` (จาก `technician_options`)
-  - error class: `VersionConflictError`, `ForbiddenTransitionError`, `ResolutionRequiredError`, `ReasonRequiredError`, `PhotoLimitError`, `PhotoInvalidError` (mime/ขนาดผิด)
+  - `lookups.ts`: `listCategories(db)`, `listDepartments(db)`, `listEquipment(db, { q?: string })` (ค้น `asset_tag`/`name` แบบไม่สนตัวพิมพ์ด้วย `imatch` ที่ escape regex แล้ว เพราะ PostgREST แปลง `*` ใน `ilike` เป็น `%` เสมอ จึงค้น `*` ตามตัวอักษรไม่ได้; ไม่เกิน 20 แถว), `listTechnicians(db)` (จาก `technician_options`)
+  - error class: `VersionConflictError`, `ForbiddenTransitionError`, `AssigneeRequiredError`, `ResolutionRequiredError`, `ReasonRequiredError`, `PhotoLimitError`, `PhotoInvalidError` (`reason: 'mime' | 'size'`) แปลงจากข้อความ exception ผ่านตารางเดียวใน `errors.ts`; ข้อมูลผิดรูปแบบ (`createTicketSchema`, `resolutionSchema`, `commentSchema`) โยน `ZodError` ที่มีข้อความไทย
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว** (รันกับ Supabase local ด้วยผู้ใช้ทดสอบสามบทบาท):
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** (รันกับ Supabase local ด้วยผู้ใช้ทดสอบสามบทบาท):
 
 ```ts
 test('createTicket twice with same clientRequestId returns the same ticket', async () => {
@@ -304,10 +305,12 @@ test('whitespace-only comment is rejected', /* … */);
 test('listCategories for a reporter hides inactive categories', /* … */);
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter @repair/api test` — คาดว่า FAIL
-- [ ] **Step 3: เขียนฟังก์ชันตาม Interfaces** — `createTicket` ใช้ `upsert(..., { onConflict: 'client_request_id', ignoreDuplicates: true })` แล้ว select กลับด้วย `client_request_id`; `attachPhoto` ตรวจ mime/ขนาดฝั่ง client ก่อนอัปโหลด และแปลง exception `photo_limit` / `version_conflict` / `forbidden_transition` เป็น error class ข้างบน
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(api): ticket, photo and comment functions"`
+เพิ่มเติม: error ของ transition แต่ละแบบได้ class ที่ถูก, reporter เปิดใบของ reporter อื่นได้ `null`, signed URL โหลดได้จริง (200), แบ่งหน้าครบทุกแถวไม่ซ้ำ, ค้นอุปกรณ์ด้วย `,` `%` `_` `*` แล้วตรงตามตัวอักษร, reporter แนบรูปในใบของคนอื่นไม่ได้, อัปโหลดที่ insert ล้มเหลว (สองคำขอพร้อมกันตอนมี 4 รูป) ไม่เหลือไฟล์ค้าง, และ pgTAP `photo_delete.sql` สำหรับ policy ลบไฟล์
+
+- [x] **Step 2: รัน** `corepack pnpm --filter @repair/api test:db` — คาดว่า FAIL (แพ็กเกจนี้ไม่มีสคริปต์ `test` เพราะทุกเทสต์ต้องใช้ DB; `corepack pnpm test:db` ที่ root รันให้ด้วย)
+- [x] **Step 3: เขียนฟังก์ชันตาม Interfaces** — `createTicket` ใช้ `upsert(..., { onConflict: 'client_request_id', ignoreDuplicates: true })` แล้ว select กลับด้วย `client_request_id`; `attachPhoto` ตรวจ mime/ขนาดฝั่ง client ก่อนเรียกเครือข่าย นับรูปเดิมก่อนอัปโหลด และทุกฟังก์ชันแปลง exception ผ่าน `throwDbError`
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS (`corepack pnpm test:db`, `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm exec supabase db lint --level warning`)
+- [x] **Step 5: Commit** `git commit -m "feat(api): ticket, photo and comment functions"`
 
 ---
 
@@ -409,7 +412,7 @@ test('deactivating a user also bans them in Auth', /* … */);
 ### Task 7.6: เว็บ — หน้าสรุปรายงานของ admin
 
 **Files:**
-- Create: `supabase/migrations/0004_reports.sql`, `apps/web/app/admin/reports/page.tsx`, `packages/api/src/reports.ts`
+- Create: `supabase/migrations/0005_reports.sql`, `apps/web/app/admin/reports/page.tsx`, `packages/api/src/reports.ts`
 - Test: `supabase/tests/reports.sql`
 
 **Interfaces:**
