@@ -64,3 +64,7 @@ Seed user ids start with `5eed0000-`, so pgTAP tests that insert fixed `00000000
 - Files use LF line endings (`.gitattributes`).
 - Secrets live in `.env`, which git ignores. Add every new variable to `.env.example` too.
 - Keep comments for the non-obvious why only.
+
+## Dev database
+
+- `corepack pnpm test:db` writes test users, categories, equipment and tickets into the local dev database and leaves them there. Run `corepack pnpm db:reset` afterwards to get back to seed data only (it also deletes any tickets created by hand).
