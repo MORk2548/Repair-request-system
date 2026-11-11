@@ -151,6 +151,18 @@ test('getTicket returns the category, equipment and the names of everyone on the
   expect((await getTicket(reporter.db, (await createTicket(reporter.db, ticketInput(categoryId))).id))?.equipment).toBeNull();
 });
 
+test('getTicket shows a reporter the names of a deactivated category and retired equipment', async () => {
+  const tempCategory = await newCategory();
+  const assetTag = `T75-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: eq, error } = await service.from('equipment').insert({ asset_tag: assetTag, name: 'เครื่องเก่า' }).select('id').single();
+  if (error) throw error;
+  const { id: ticketId } = await createTicket(reporter.db, ticketInput(tempCategory, { equipmentId: eq.id }));
+  const { data: cat } = await service.from('categories').update({ is_active: false }).eq('id', tempCategory).select('name').single();
+  await service.from('equipment').update({ status: 'retired' }).eq('id', eq.id);
+
+  expect(await getTicket(reporter.db, ticketId)).toMatchObject({ categoryName: cat!.name, equipment: { assetTag, name: 'เครื่องเก่า' } });
+});
+
 test('getTicket returns null for an id that is not a uuid', async () => {
   expect(await getTicket(reporter.db, 'not-a-uuid')).toBeNull();
 });

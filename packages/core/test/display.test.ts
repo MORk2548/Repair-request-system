@@ -1,9 +1,25 @@
 import { expect, test } from 'vitest';
-import { PRIORITIES, PRIORITY_LABELS, STATUS_LABELS, TICKET_STATUSES, eventLabel, formatThaiDateTime } from '../src/index';
+import {
+  EQUIPMENT_STATUSES,
+  EQUIPMENT_STATUS_LABELS,
+  PRIORITIES,
+  PRIORITY_LABELS,
+  ROLES,
+  ROLE_LABELS,
+  STATUS_LABELS,
+  TICKET_STATUSES,
+  eventLabel,
+  formatThaiDateTime,
+} from '../src/index';
 
 test('every status and priority has a Thai label', () => {
   expect(TICKET_STATUSES.map((s) => STATUS_LABELS[s])).toEqual(['ใหม่', 'มอบหมายแล้ว', 'กำลังดำเนินการ', 'แก้ไขเสร็จ', 'ปิดงาน', 'ยกเลิก']);
   expect(PRIORITIES.map((p) => PRIORITY_LABELS[p])).toEqual(['ต่ำ', 'ปกติ', 'ด่วน']);
+});
+
+test('every role and equipment status has a Thai label', () => {
+  expect(ROLES.map((r) => ROLE_LABELS[r])).toEqual(['ผู้แจ้ง', 'ช่าง', 'ผู้ดูแลระบบ']);
+  expect(EQUIPMENT_STATUSES.map((s) => EQUIPMENT_STATUS_LABELS[s])).toEqual(['ใช้งาน', 'กำลังซ่อม', 'ปลดระวาง']);
 });
 
 test('formatThaiDateTime shows Bangkok time with a Buddhist-era year', () => {

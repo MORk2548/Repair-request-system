@@ -18,28 +18,40 @@ beforeAll(async () => {
   if (error) throw error;
 });
 
-test('listCategories for a reporter hides inactive categories', async () => {
+test('listCategories leaves out inactive categories unless includeInactive is set', async () => {
   const ids = (await listCategories(reporter.db)).map((c) => c.id);
   expect(ids).toContain(active);
   expect(ids).not.toContain(inactive);
-  expect((await listCategories(admin.db)).map((c) => c.id)).toContain(inactive);
+  expect((await listCategories(admin.db)).map((c) => c.id)).not.toContain(inactive);
+  expect((await listCategories(admin.db, { includeInactive: true })).find((c) => c.id === inactive)).toMatchObject({ isActive: false });
 });
 
-test('listDepartments returns rows for a signed-in user', async () => {
-  const name = `dept-${tag}`;
-  const { error } = await service.from('departments').insert({ name });
+test('listDepartments returns active rows for a signed-in user and inactive ones on request', async () => {
+  const { error } = await service.from('departments').insert([{ name: `dept-${tag}`, is_active: true }, { name: `off-${tag}`, is_active: false }]);
   if (error) throw error;
-  expect((await listDepartments(reporter.db)).map((d) => d.name)).toContain(name);
+  const names = (await listDepartments(reporter.db)).map((d) => d.name);
+  expect(names).toContain(`dept-${tag}`);
+  expect(names).not.toContain(`off-${tag}`);
+  expect((await listDepartments(reporter.db, { includeInactive: true })).map((d) => d.name)).toContain(`off-${tag}`);
 });
 
 test('listEquipment matches asset tag or name and hides retired equipment', async () => {
   expect((await listEquipment(reporter.db, { q: `${tag}-ac` })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`]);
   expect((await listEquipment(reporter.db, { q: tag })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`, `${tag}-PR-01`, `${tag}-PR-02`]);
+  expect((await listEquipment(reporter.db, { q: `${tag}-OLD`, includeInactive: true })).map((e) => e.status)).toEqual(['retired']);
 });
 
 test('listEquipment returns the install location', async () => {
   expect(await listEquipment(reporter.db, { q: `${tag}-ac` })).toEqual([
-    { id: expect.any(Number), assetTag: `${tag}-AC-01`, name: 'แอร์ ห้อง 101', installLocation: 'ตึก A ห้อง 101' },
+    {
+      id: expect.any(Number),
+      assetTag: `${tag}-AC-01`,
+      name: 'แอร์ ห้อง 101',
+      serialNo: null,
+      departmentId: null,
+      installLocation: 'ตึก A ห้อง 101',
+      status: 'active',
+    },
   ]);
   expect((await listEquipment(reporter.db, { q: `${tag}-PR-01` }))[0]?.installLocation).toBeNull();
 });

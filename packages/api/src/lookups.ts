@@ -1,29 +1,49 @@
 import type { Db } from './client';
 import { throwDbError } from './errors';
 import { quote } from './postgrest';
-import { toEquipment, toProfile, toTechnician, type Category, type Department, type Equipment, type Profile, type Technician } from './rows';
+import {
+  toCategory,
+  toDepartment,
+  toEquipment,
+  toProfile,
+  toTechnician,
+  type Category,
+  type Department,
+  type Equipment,
+  type Profile,
+  type Technician,
+} from './rows';
 
-export async function listCategories(db: Db): Promise<Category[]> {
-  const { data, error } = await db.from('categories').select('id, name').order('sort_order').order('name');
+// every active user may read inactive lookups (old tickets show their names); pickers leave them out here
+type ListOptions = { includeInactive?: boolean };
+
+export async function listCategories(db: Db, { includeInactive = false }: ListOptions = {}): Promise<Category[]> {
+  let query = db.from('categories').select().order('sort_order').order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
   if (error) throwDbError(error);
-  return data;
+  return data.map(toCategory);
 }
 
-export async function listDepartments(db: Db): Promise<Department[]> {
-  const { data, error } = await db.from('departments').select('id, name').order('name');
+export async function listDepartments(db: Db, { includeInactive = false }: ListOptions = {}): Promise<Department[]> {
+  let query = db.from('departments').select().order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
   if (error) throwDbError(error);
-  return data;
+  return data.map(toDepartment);
 }
 
 // PostgREST rewrites every * in an ilike pattern to %, so a literal * cannot be expressed there; an escaped regex can
 const escapeRegex = (s: string) => s.replace(/[!-/:-@[-`{-~]/g, '\\$&');
 
-export async function listEquipment(db: Db, { q }: { q?: string }): Promise<Equipment[]> {
-  let query = db.from('equipment').select('id, asset_tag, name, install_location').order('asset_tag').limit(20);
+// a search (the ticket form's picker) returns at most 20 matches; without q every row is listed
+export async function listEquipment(db: Db, { q, includeInactive = false }: ListOptions & { q?: string }): Promise<Equipment[]> {
+  let query = db.from('equipment').select().order('asset_tag');
+  if (!includeInactive) query = query.neq('status', 'retired');
   const text = q?.trim();
   if (text) {
     const pattern = quote(escapeRegex(text));
-    query = query.or(`asset_tag.imatch.${pattern},name.imatch.${pattern}`);
+    query = query.or(`asset_tag.imatch.${pattern},name.imatch.${pattern}`).limit(20);
   }
   const { data, error } = await query;
   if (error) throwDbError(error);

@@ -11,8 +11,8 @@ const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 
 const categories = [
-  { id: 1, name: 'ไฟฟ้า' },
-  { id: 3, name: 'เครื่องปรับอากาศ' },
+  { id: 1, name: 'ไฟฟ้า', sortOrder: 1, isActive: true },
+  { id: 3, name: 'เครื่องปรับอากาศ', sortOrder: 3, isActive: true },
 ];
 
 const ticket = { id: 't-1', ticketNo: 'RQ-2611-0001' } as Ticket;
@@ -106,7 +106,7 @@ test('photo upload failure keeps the ticket and shows retry button', async () =>
 
 test('picking equipment fills the location, which stays editable', async () => {
   vi.mocked(listEquipment).mockResolvedValue([
-    { id: 7, assetTag: 'AC-0001', name: 'แอร์ห้องประชุมใหญ่', installLocation: 'อาคาร A ชั้น 2' },
+    { id: 7, assetTag: 'AC-0001', name: 'แอร์ห้องประชุมใหญ่', installLocation: 'อาคาร A ชั้น 2', serialNo: null, departmentId: null, status: 'active' },
   ]);
   vi.mocked(createTicket).mockResolvedValue(ticket);
   const user = setup();

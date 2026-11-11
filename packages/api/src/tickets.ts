@@ -99,7 +99,6 @@ export async function getTicket(db: Db, id: string): Promise<TicketDetail | null
   if (people.error) throwDbError(people.error);
   return {
     ...toTicket(row),
-    // null when RLS hides an inactive category or retired equipment from a non-admin
     categoryName: category?.name ?? null,
     equipment: equipment && { assetTag: equipment.asset_tag, name: equipment.name },
     people: Object.fromEntries(people.data.map((p) => [p.id!, p.display_name!])),

@@ -64,17 +64,32 @@ export const toTicketEvent = (r: Tables<'ticket_events'>): TicketEvent => ({
   createdAt: r.created_at,
 });
 
-export type Category = Pick<Tables<'categories'>, 'id' | 'name'>;
-export type Department = Pick<Tables<'departments'>, 'id' | 'name'>;
-export type Equipment = { id: number; assetTag: string; name: string; installLocation: string | null };
+export type Category = { id: number; name: string; sortOrder: number; isActive: boolean };
+export type Department = { id: number; name: string; isActive: boolean };
+export type Equipment = {
+  id: number;
+  assetTag: string;
+  name: string;
+  serialNo: string | null;
+  departmentId: number | null;
+  installLocation: string | null;
+  status: Tables<'equipment'>['status'];
+};
 export type Technician = { id: string; displayName: string };
 export type Profile = { id: string; displayName: string; role: Role };
 
-export const toEquipment = (r: Pick<Tables<'equipment'>, 'id' | 'asset_tag' | 'name' | 'install_location'>): Equipment => ({
+export const toCategory = (r: Tables<'categories'>): Category => ({ id: r.id, name: r.name, sortOrder: r.sort_order, isActive: r.is_active });
+
+export const toDepartment = (r: Tables<'departments'>): Department => ({ id: r.id, name: r.name, isActive: r.is_active });
+
+export const toEquipment = (r: Tables<'equipment'>): Equipment => ({
   id: r.id,
   assetTag: r.asset_tag,
   name: r.name,
+  serialNo: r.serial_no,
+  departmentId: r.department_id,
   installLocation: r.install_location,
+  status: r.status,
 });
 
 export const toProfile = (r: Pick<Tables<'profiles'>, 'id' | 'display_name' | 'role'>): Profile => ({

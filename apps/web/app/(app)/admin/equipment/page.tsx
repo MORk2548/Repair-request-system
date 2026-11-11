@@ -1,0 +1,40 @@
+import { listDepartments, listEquipment } from '@repair/api';
+import { EquipmentForm, EquipmentRow } from '../../../../components/EquipmentRow';
+import { getSession } from '../../../../lib/session';
+
+export default async function AdminEquipmentPage() {
+  const { db } = await getSession();
+  const [equipment, departments] = await Promise.all([listEquipment(db, { includeInactive: true }), listDepartments(db, { includeInactive: true })]);
+
+  return (
+    <div className="stack">
+      <h1>อุปกรณ์</h1>
+      <div className="card">
+        <EquipmentForm departments={departments} />
+      </div>
+      <p className="hint">สถานะ "กำลังซ่อม" และ "ใช้งาน" ปรับเองตามใบแจ้งซ่อมที่กำลังดำเนินการ ส่วน "ปลดระวาง" ตั้งได้ที่นี่เท่านั้น</p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสทรัพย์สิน</th>
+              <th>ชื่อ</th>
+              <th>หมายเลขเครื่อง</th>
+              <th>แผนก</th>
+              <th>สถานที่ติดตั้ง</th>
+              <th>สถานะ</th>
+              <th>
+                <span className="visually-hidden">จัดการ</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {equipment.map((e) => (
+              <EquipmentRow key={e.id} equipment={e} departments={departments} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -23,7 +23,7 @@ const must = <R extends { data: unknown; error: unknown }>(r: R): NonNullable<Ex
   return r.data as NonNullable<Extract<R, { error: null }>['data']>;
 };
 
-export type TestUser = { id: string; db: Db };
+export type TestUser = { id: string; email: string; password: string; db: Db };
 
 export async function newUser(role: Role): Promise<TestUser> {
   const email = `${role}-${crypto.randomUUID()}@test.local`;
@@ -32,8 +32,11 @@ export async function newUser(role: Role): Promise<TestUser> {
   must(await service.from('profiles').insert({ id: user.id, display_name: email, role }).select().single());
   const db: Db = createClient<Database>(env.url, env.anonKey, noSession);
   must(await db.auth.signInWithPassword({ email, password }));
-  return { id: user.id, db };
+  return { id: user.id, email, password, db };
 }
+
+export const signIn = (u: Pick<TestUser, 'email' | 'password'>) =>
+  createClient<Database>(env.url, env.anonKey, noSession).auth.signInWithPassword({ email: u.email, password: u.password });
 
 export async function newCategory(isActive = true): Promise<number> {
   const name = `cat-${crypto.randomUUID()}`;
