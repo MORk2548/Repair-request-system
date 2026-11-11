@@ -170,7 +170,7 @@ git add . && git commit -m "feat(core): monorepo scaffold and ticket status mach
   - `resolutionSchema` — 1–1000 code point หลัง trim, ข้อความผิดพลาด "กรุณากรอกวิธีแก้ไข"
   - หมวดไม่ใช่ค่าคงที่ใน core อีกต่อไป (อ่านจากตาราง `categories`)
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว** (ครอบ Review Focus ข้อ 5):
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** (ครอบ Review Focus ข้อ 5):
 
 ```ts
 const base = { title: 'แอร์ไม่เย็น', description: 'ห้องประชุม 2 แอร์ไม่เย็นตั้งแต่เช้า', categoryId: 3, location: 'ตึก A ชั้น 3', clientRequestId: crypto.randomUUID() };
@@ -190,10 +190,10 @@ test('equipmentId defaults to null; categoryId must be a positive integer', () =
 test('whitespace-only resolution is rejected', () => expect(resolutionSchema.safeParse('   ').success).toBe(false));
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter @repair/core test ticket` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `createTicketSchema` และ type ข้างบน** ใน `ticket.ts` — trim ก่อนนับ, นับความยาวด้วย `[...s].length`, ข้อความผิดพลาดเป็นภาษาไทย (เช่น "กรุณากรอกหัวข้อ")
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(core): ticket schema and types"`
+- [x] **Step 2: รัน** `pnpm --filter @repair/core test ticket` — คาดว่า FAIL
+- [x] **Step 3: เขียน `createTicketSchema` และ type ข้างบน** ใน `ticket.ts` — trim ก่อนนับ, นับความยาวด้วย `[...s].length`, ข้อความผิดพลาดเป็นภาษาไทย (เช่น "กรุณากรอกหัวข้อ")
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
+- [x] **Step 5: Commit** `git commit -m "feat(core): ticket schema and types"`
 
 ---
 
