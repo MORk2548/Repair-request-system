@@ -124,7 +124,7 @@ e2e/smoke.spec.ts
 
 ความเป็นเจ้าของ (reporter ต้องเป็นเจ้าของใบ, technician ต้องเป็นผู้ถูกมอบหมาย, technician รับงาน `new` ได้แค่ให้ตัวเอง) ตรวจที่ฐานข้อมูลใน Task 4 ไม่ตรวจที่นี่
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว** ใน `status.test.ts`:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** ใน `status.test.ts`:
 
 ```ts
 test('admin assigns a new ticket', () => expect(canTransition('new', 'assigned', 'admin')).toBe(true));
@@ -143,10 +143,10 @@ test('only staff can reassign, and only while assigned or in progress', () => {
 });
 ```
 
-- [ ] **Step 2: ตั้งค่า workspace (pnpm, TypeScript strict, Vitest) แล้วรัน** `pnpm --filter @repair/core test` — คาดว่า FAIL เพราะ `canTransition` ยังไม่มี
-- [ ] **Step 3: เขียน `TRANSITIONS`, `canTransition`, `nextStatuses`** ใน `status.ts` ตามตารางข้างบน (`nextStatuses` คืนตามลำดับในตาราง)
-- [ ] **Step 4: รัน** `pnpm --filter @repair/core test` — คาดว่า PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 2: ตั้งค่า workspace (pnpm, TypeScript strict, Vitest) แล้วรัน** `pnpm --filter @repair/core test` — คาดว่า FAIL เพราะ `canTransition` ยังไม่มี
+- [x] **Step 3: เขียน `TRANSITIONS`, `canTransition`, `nextStatuses`** ใน `status.ts` ตามตารางข้างบน (`nextStatuses` คืนตามลำดับในตาราง)
+- [x] **Step 4: รัน** `pnpm --filter @repair/core test` — คาดว่า PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add . && git commit -m "feat(core): monorepo scaffold and ticket status machine"
