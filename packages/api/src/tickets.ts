@@ -9,6 +9,11 @@ const SIGNED_URL_SECONDS = 3600;
 
 export async function createTicket(db: Db, raw: CreateTicketInput): Promise<Ticket> {
   const input = createTicketSchema.parse(raw);
+  // a retry finds its ticket here; the insert trigger would otherwise use up a ticket number before ON CONFLICT skips the row
+  const existing = await db.from('tickets').select().eq('client_request_id', input.clientRequestId).maybeSingle();
+  if (existing.error) throwDbError(existing.error);
+  if (existing.data) return toTicket(existing.data);
+
   const row: Omit<TablesInsert<'tickets'>, 'ticket_no'> = {
     client_request_id: input.clientRequestId,
     title: input.title,

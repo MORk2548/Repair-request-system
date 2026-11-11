@@ -37,6 +37,15 @@ test('createTicket twice with same clientRequestId returns the same ticket', asy
   expect((await listTickets(reporter.db, {})).items).toHaveLength(1);
 });
 
+test('a retried createTicket does not use up a ticket number', async () => {
+  const input = ticketInput(categoryId);
+  const first = await createTicket(reporter.db, input);
+  await createTicket(reporter.db, input);
+  const next = await createTicket(reporter.db, ticketInput(categoryId));
+  const seq = (t: { ticketNo: string }) => Number(t.ticketNo.split('-')[2]);
+  expect(seq(next)).toBe(seq(first) + 1);
+});
+
 test('createTicket rejects invalid input with the Thai ZodError', async () => {
   const err = await createTicket(reporter.db, ticketInput(categoryId, { title: '   ' })).catch((e: unknown) => e);
   expect(err).toMatchObject({ name: 'ZodError' });
