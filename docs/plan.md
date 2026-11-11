@@ -241,7 +241,7 @@ test('whitespace-only resolution is rejected', () => expect(resolutionSchema.saf
 
 **Files:**
 - Create: `supabase/migrations/0003_transition.sql`
-- Test: `supabase/tests/transition.sql`, `packages/core/test/parity.test.ts`
+- Test: `supabase/tests/transition.sql`, `packages/core/test/parity.db.test.ts`
 
 **Interfaces:**
 - Consumes: ตารางจาก Task 3, `TRANSITIONS` จาก Task 1
@@ -255,13 +255,13 @@ test('whitespace-only resolution is rejected', () => expect(resolutionSchema.saf
   - ทุกครั้งที่สำเร็จ: `version = version + 1`, แทรกแถวใน `ticket_events` (`action = 'status'` หรือ `'assigned'`)
   - `reassign_ticket(p_ticket_id uuid, p_expected_version int, p_assignee uuid, p_reason text) returns tickets` (security definer): ผู้เรียกต้องเป็นช่างผู้ถูกมอบหมายของใบหรือ admin, ใบต้องอยู่ `assigned`/`in_progress`, ผู้รับต้องเป็น technician ที่ active และไม่ใช่คนเดิม; ตั้ง `assignee_id`, `status = 'assigned'`, `version + 1`, แทรก `ticket_events(action = 'reassigned', to_status = 'assigned', detail = p_reason)`; exception: `version_conflict`, `forbidden_transition`, `assignee_required`, `reason_required` (เหตุผลว่าง)
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**
   - `transition.sql`: admin `new → assigned` พร้อม technician สำเร็จ และ `version` เป็น 2; เรียกซ้ำด้วย `p_expected_version = 1` → `throws_ok 'version_conflict'` (Review Focus ข้อ 2); reporter เรียก `new → assigned` → `'forbidden_transition'`; reporter เรียก `done → closed` บนใบของคนอื่น → `'forbidden_transition'`; technician ที่ไม่ใช่ผู้ถูกมอบหมายเรียก `assigned → in_progress` → `'forbidden_transition'`; `new → assigned` ไม่ส่ง assignee → `'assignee_required'`; `in_progress → done` ไม่ส่ง resolution → `'resolution_required'`; หลัง `done` ค่า `resolved_at` ไม่เป็น null และเปิดซ้ำแล้วเป็น null; อุปกรณ์ของใบเป็น `under_repair` ระหว่าง `in_progress`; technician รับใบ `new` ให้ตัวเองสำเร็จ แต่รับให้ช่างคนอื่น → `'forbidden_transition'`; `reassign_ticket` โดยช่างผู้ถูกมอบหมายสำเร็จและ `assignee_id` เป็นคนใหม่, ไม่มีเหตุผล → `'reason_required'`, ช่างที่ไม่ใช่ผู้ถูกมอบหมาย → `'forbidden_transition'`, บนใบ `done` → `'forbidden_transition'`
-  - `parity.test.ts`: อ่านตาราง `status_transitions` จาก Supabase local แล้วยืนยันว่าทุก `(from, to, role)` ตรงกับ `TRANSITIONS` เป๊ะ (ไม่ขาดไม่เกิน)
-- [ ] **Step 2: รัน** `supabase test db` และ `pnpm --filter @repair/core test parity` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `transition_ticket`** เป็น `security definer`, `update … where id = p_ticket_id and version = p_expected_version` (0 แถว → `version_conflict`), ตรวจสิทธิ์จาก `status_transitions` + ความเป็นเจ้าของ
-- [ ] **Step 4: รันทั้งสองคำสั่งซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(db): transition_ticket rpc with optimistic locking"`
+  - `parity.db.test.ts`: อ่านตาราง `status_transitions` จาก Supabase local แล้วยืนยันว่าทุก `(from, to, role)` ตรงกับ `TRANSITIONS` เป๊ะ (ไม่ขาดไม่เกิน)
+- [x] **Step 2: รัน** `corepack pnpm test:db` (= `supabase test db` แล้ว `corepack pnpm --filter @repair/core test:db`) — คาดว่า FAIL
+- [x] **Step 3: เขียน `transition_ticket`** เป็น `security definer`, ล็อกใบด้วย `select … for update` แล้วเทียบ `version` กับ `p_expected_version` (ไม่ตรง → `version_conflict`), ตรวจสิทธิ์จาก `status_transitions` + ความเป็นเจ้าของ
+- [x] **Step 4: รัน** `corepack pnpm test:db` **ซ้ำ** — คาดว่า PASS
+- [x] **Step 5: Commit** `git commit -m "feat(db): transition_ticket rpc with optimistic locking"`
 
 ---
 

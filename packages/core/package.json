@@ -6,10 +6,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude \"**/*.db.test.ts\"",
+    "test:db": "vitest run parity",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },

@@ -6,7 +6,7 @@ export type TicketStatus = (typeof TICKET_STATUSES)[number];
 
 export type Transition = { from: TicketStatus; to: TicketStatus; role: Role };
 
-// One row per (from, to, role); Task 4 seeds this table into the DB verbatim.
+// One row per (from, to, role); status_transitions in 0003_transition.sql must match (parity.db.test.ts).
 export const TRANSITIONS: ReadonlyArray<Transition> = [
   { from: 'new', to: 'assigned', role: 'admin' },
   { from: 'new', to: 'assigned', role: 'technician' },
