@@ -1,4 +1,4 @@
-import type { Ticket } from '@repair/core';
+import type { Role, Ticket } from '@repair/core';
 import type { Tables } from './database.types';
 
 export type Comment = { id: number; ticketId: string; authorId: string; body: string; createdAt: string };
@@ -58,13 +58,21 @@ export const toTicketEvent = (r: Tables<'ticket_events'>): TicketEvent => ({
 
 export type Category = Pick<Tables<'categories'>, 'id' | 'name'>;
 export type Department = Pick<Tables<'departments'>, 'id' | 'name'>;
-export type Equipment = { id: number; assetTag: string; name: string };
+export type Equipment = { id: number; assetTag: string; name: string; installLocation: string | null };
 export type Technician = { id: string; displayName: string };
+export type Profile = { id: string; displayName: string; role: Role };
 
-export const toEquipment = (r: Pick<Tables<'equipment'>, 'id' | 'asset_tag' | 'name'>): Equipment => ({
+export const toEquipment = (r: Pick<Tables<'equipment'>, 'id' | 'asset_tag' | 'name' | 'install_location'>): Equipment => ({
   id: r.id,
   assetTag: r.asset_tag,
   name: r.name,
+  installLocation: r.install_location,
+});
+
+export const toProfile = (r: Pick<Tables<'profiles'>, 'id' | 'display_name' | 'role'>): Profile => ({
+  id: r.id,
+  displayName: r.display_name,
+  role: r.role,
 });
 
 // views report every column nullable; technician_options only selects not-null profile columns

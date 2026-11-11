@@ -317,17 +317,26 @@ test('listCategories for a reporter hides inactive categories', /* … */);
 ### Task 6: เว็บ — ล็อกอิน, แจ้งซ่อม, รายการใบของฉัน
 
 **Files:**
-- Create: `apps/web/app/login/page.tsx`, `apps/web/app/tickets/page.tsx`, `apps/web/app/tickets/new/page.tsx`, `apps/web/components/{TicketForm.tsx, TicketTable.tsx}`, `apps/web/lib/supabase-server.ts`
-- Test: `apps/web/components/TicketForm.test.tsx`
+- Create: `apps/web/app/{layout.tsx, globals.css}`, `apps/web/app/login/page.tsx`, `apps/web/app/tickets/{layout.tsx, page.tsx}`, `apps/web/app/tickets/new/page.tsx`, `apps/web/components/{TicketForm.tsx, TicketTable.tsx, LoginForm.tsx, SignOutButton.tsx}`, `apps/web/lib/{env.ts, supabase-server.ts, supabase-browser.ts}`, `apps/web/middleware.ts`, `apps/web/.env.example`, `packages/core/src/display.ts`, `supabase/seed.sql`
+- Modify: `packages/api/src/lookups.ts` (`listEquipment` คืน `installLocation`, เพิ่ม `getProfile` สำหรับชื่อบน header), `packages/core/src/ticket.ts` (ค่าคงที่รูป `MAX_PHOTOS`, `MAX_PHOTO_BYTES`, `PHOTO_MIME_TYPES` ที่ api ใช้ร่วม)
+- Test: `apps/web/components/{TicketForm.test.tsx, LoginForm.test.tsx}`, `packages/core/test/display.test.ts`, `packages/api/test/lookups.test.ts`
+
+- [x] **Step 0: seed ข้อมูล dev** `supabase/seed.sql` (โหลดโดย `supabase db reset` เท่านั้น; ย้ายมาจาก Task 12) คัดจาก `Repair System/database/seed.sql`:
+  - `departments`: 7 แผนก (ใช้ `name_th`)
+  - ผู้ใช้ 10 คน (อีเมล `@helpdesk.test` ชุดเดิม): insert `auth.users` + `auth.identities` ด้วย `crypt('helpdesk-dev', gen_salt('bf'))` และ uuid คงที่ `5eed0000-0000-0000-0000-0000000000NN` (ไม่ใช้ `00000000-…` เพราะ pgTAP ใช้ช่วงนั้นอยู่) แล้ว insert `profiles` ด้วยชื่อ บทบาทที่แมปแล้ว (admin 1, technician 3, reporter 6) และแผนก; รหัสผ่าน dev เขียนไว้หัว `seed.sql` และ `AGENTS.md`
+  - `categories`: ไฟฟ้า, ประปา, เครื่องปรับอากาศ, เฟอร์นิเจอร์, เครือข่าย (sort 1–5), อื่น ๆ (99); `equipment`: ตัวอย่าง 6 รายการกระจายแผนก
+  - ไม่ระบุ id ของ identity column เอง เพื่อให้แถวที่เทสต์ insert ทีหลังไม่ชน
+  - ไม่นำ `branches`, `notifications`, `login_attempts`, การตั้งค่าธีม/ภาษา หรือใบงานจาก `tests/fixtures.sql` มา
 
 **Interfaces:**
 - Consumes: `createTicket`, `attachPhoto`, `listTickets`, `createTicketSchema`
 - Produces:
-  - `<TicketForm onSubmitted={(t: Ticket) => void} />`
+  - `<TicketForm categories={Category[]} />` (หน้า server ส่งฟังก์ชันให้ client component ไม่ได้ ฟอร์มจึงไป `/tickets` เองเมื่อสำเร็จครบ แทน `onSubmitted`)
   - `<TicketTable items={Ticket[]} />`
-  - เส้นทาง `/login`, `/tickets`, `/tickets/new` (ผู้ไม่ล็อกอินถูก redirect ไป `/login` ผ่าน middleware)
+  - `STATUS_LABELS`, `PRIORITY_LABELS`, `formatThaiDateTime(iso)` ใน `@repair/core` (มือถือใช้ร่วม)
+  - เส้นทาง `/login`, `/tickets`, `/tickets/new` (ผู้ไม่ล็อกอินถูก redirect ไป `/login` ผ่าน middleware; `/` และ `/login` ของคนที่ล็อกอินแล้วไป `/tickets`)
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว** ด้วย Testing Library โดย mock `@repair/api`:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** ด้วย Testing Library โดย mock `@repair/api` (เพิ่มจากสามข้อด้านล่าง: เลือกอุปกรณ์แล้วเติมสถานที่, รูปที่ 6 ถูกปฏิเสธด้วย "แนบรูปได้ไม่เกิน 5 รูป", `createTicket` ล้มแล้วข้อความที่พิมพ์ยังอยู่และส่งใหม่ใช้ `clientRequestId` เดิม, login ผิดแสดง "อีเมลหรือรหัสผ่านไม่ถูกต้อง"):
 
 ```tsx
 test('shows Thai validation message for empty title and does not call createTicket', /* กดส่งว่าง ๆ → เห็น "กรุณากรอกหัวข้อ" */);
@@ -339,10 +348,10 @@ test('photo upload failure keeps the ticket and shows retry button', async () =>
 });
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter web test` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `TicketForm`** — หมวดเป็น dropdown จาก `listCategories`; ช่องอุปกรณ์ (ไม่บังคับ) ค้นด้วยรหัสทรัพย์สิน/ชื่อผ่าน `listEquipment` เลือกแล้วเติม `location` จาก `install_location` ให้ (แก้ต่อได้); สร้าง `clientRequestId` ครั้งเดียวต่อฟอร์ม (`useRef`), ปิดปุ่มระหว่างส่ง, อัปโหลดรูปหลัง `createTicket` สำเร็จแล้วเท่านั้น, เก็บรูปที่ยังอัปโหลดไม่สำเร็จไว้ใน state ให้ลองใหม่ได้; เขียนหน้า login (อีเมล+รหัสผ่าน; ผิดแสดง "อีเมลหรือรหัสผ่านไม่ถูกต้อง" ไม่บอกว่าผิดช่องไหน), `/tickets`, `/tickets/new`
-- [ ] **Step 4: รัน** `pnpm --filter web test` — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(web): login, create ticket and my tickets"`
+- [x] **Step 2: รัน** `pnpm --filter web test` — คาดว่า FAIL
+- [x] **Step 3: เขียน `TicketForm`** — หมวดเป็น dropdown จาก `listCategories`; ช่องอุปกรณ์ (ไม่บังคับ) ค้นด้วยรหัสทรัพย์สิน/ชื่อผ่าน `listEquipment` เลือกแล้วเติม `location` จาก `install_location` ให้ (แก้ต่อได้); สร้าง `clientRequestId` ครั้งเดียวต่อฟอร์ม (`useRef`), ปิดปุ่มระหว่างส่ง, อัปโหลดรูปหลัง `createTicket` สำเร็จแล้วเท่านั้น, เก็บรูปที่ยังอัปโหลดไม่สำเร็จไว้ใน state ให้ลองใหม่ได้; เขียนหน้า login (อีเมล+รหัสผ่าน; ผิดแสดง "อีเมลหรือรหัสผ่านไม่ถูกต้อง" ไม่บอกว่าผิดช่องไหน), `/tickets`, `/tickets/new`
+- [x] **Step 4: รัน** `pnpm --filter web test` — คาดว่า PASS; แล้ว `pnpm --filter web build` และเปิด dev server ตรวจจริงว่า `/login` แสดงผลและ `/tickets` ของคนไม่ล็อกอินถูกส่งไป `/login`
+- [x] **Step 5: Commit** `git commit -m "feat(web): login, create ticket and my tickets"`
 
 ---
 
@@ -583,13 +592,9 @@ test('VersionConflictError shows reload message', /* … */);
 - Produces: เว็บ deploy บน Vercel, ฐานข้อมูล/Edge Function บน Supabase project จริง, แอป build ด้วย EAS (internal distribution)
 
 - [ ] **Step 1: เขียน Playwright smoke** ที่ล้มเหลว: reporter ล็อกอิน → สร้างใบแจ้งซ่อมพร้อมรูป → เห็นเลข `RQ-` ในรายการ; admin ล็อกอิน → มอบหมายช่าง → ช่างล็อกอิน → `ส่งต่อช่างคนอื่น` พร้อมเหตุผล → ช่างคนใหม่ล็อกอิน → `เริ่มงาน` → `เสร็จงาน`; (ช่องวิธีแก้ไขว่างต้องกดส่งไม่ได้); reporter เลือกอุปกรณ์ตอนแจ้งแล้วเห็นในหน้า detail; admin ปิดบัญชีผู้ใช้หนึ่งคนแล้วผู้ใช้นั้นล็อกอินไม่ได้; reporter `ปิดงาน` แล้วใบอยู่สถานะ `closed` และไม่มีปุ่มเหลือ; ระหว่างทางตรวจว่าเซิร์ฟเวอร์จำลอง Resend (ตั้ง `RESEND_API_URL` ชี้มาที่เทสต์) ได้รับอีเมลถึงผู้แจ้งตอน `assigned` และ `done`
-- [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local — คาดว่า FAIL จนกว่า seed ผู้ใช้ทดสอบสามบทบาท (`supabase/seed.sql`) จะพร้อม
-- [ ] **Step 3: เพิ่ม seed, `.env.example`, README;** `supabase/seed.sql` (โหลดโดย `supabase db reset` เท่านั้น) คัดจาก `Repair System/database/seed.sql`:
-  - `departments`: 7 แผนก (ใช้ `name_th`)
-  - ผู้ใช้ 10 คน (อีเมล `@helpdesk.test` ชุดเดิม): insert `auth.users` + `auth.identities` ด้วย `crypt('<dev password>', gen_salt('bf'))` และ uuid คงที่ แล้ว insert `profiles` ด้วยชื่อ บทบาทที่แมปแล้ว (admin 1, technician 3, reporter 6) และแผนก; รหัสผ่าน dev เขียนไว้หัว `seed.sql` และ README
-  - `categories`: ไฟฟ้า, ประปา, เครื่องปรับอากาศ, เฟอร์นิเจอร์, เครือข่าย, อื่น ๆ; `equipment`: ตัวอย่าง 5–6 รายการกระจายแผนก
-  - ไม่นำ `branches`, `notifications`, `login_attempts`, การตั้งค่าธีม/ภาษา หรือใบงานจาก `tests/fixtures.sql` มา
-  
+- [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local (ใช้บัญชี dev จาก `supabase/seed.sql`) — คาดว่า FAIL
+- [ ] **Step 3: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
+
   จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`) และ Database Webhook; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
 - [ ] **Step 4: รัน** `pnpm exec playwright test` — คาดว่า PASS; แล้วลองบนมือถือจริงหนึ่งเครื่อง: สร้างใบ → admin มอบหมาย → ได้ push และอีเมลภายใน 1 นาที (ตรวจว่าอีเมลไม่เข้าสแปม)
 - [ ] **Step 5: Commit** `git commit -m "chore: e2e smoke test and deployment docs"`

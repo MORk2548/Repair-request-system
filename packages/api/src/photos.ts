@@ -1,18 +1,17 @@
+import { MAX_PHOTO_BYTES, MAX_PHOTOS, type PHOTO_MIME_TYPES } from '@repair/core';
 import type { Db } from './client';
 import { PhotoInvalidError, PhotoLimitError, throwDbError } from './errors';
 
-const EXTENSIONS: Readonly<Record<string, string>> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const MAX_BYTES = 5 * 1024 * 1024;
-const MAX_PHOTOS = 5;
+const EXTENSIONS: Readonly<Record<(typeof PHOTO_MIME_TYPES)[number], string>> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
 export async function attachPhoto(
   db: Db,
   ticketId: string,
   file: { data: Blob | ArrayBuffer; mime: string; size: number; name: string },
 ): Promise<{ id: number }> {
-  const ext = Object.hasOwn(EXTENSIONS, file.mime) ? EXTENSIONS[file.mime] : undefined;
+  const ext = Object.hasOwn(EXTENSIONS, file.mime) ? EXTENSIONS[file.mime as keyof typeof EXTENSIONS] : undefined;
   if (!ext) throw new PhotoInvalidError('mime');
-  if (file.size > MAX_BYTES) throw new PhotoInvalidError('size');
+  if (file.size > MAX_PHOTO_BYTES) throw new PhotoInvalidError('size');
 
   const { count, error: countError } = await db
     .from('ticket_attachments')

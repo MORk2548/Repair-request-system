@@ -1,5 +1,5 @@
 import { beforeAll, expect, test } from 'vitest';
-import { listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
+import { getProfile, listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
 import { newCategory, newUser, service, type TestUser } from './helpers';
 
 let reporter: TestUser, tech: TestUser, admin: TestUser;
@@ -10,7 +10,7 @@ beforeAll(async () => {
   [reporter, tech, admin] = await Promise.all([newUser('reporter'), newUser('technician'), newUser('admin')]);
   [active, inactive] = await Promise.all([newCategory(true), newCategory(false)]);
   const { error } = await service.from('equipment').insert([
-    { asset_tag: `${tag}-AC-01`, name: 'แอร์ ห้อง 101', status: 'active' },
+    { asset_tag: `${tag}-AC-01`, name: 'แอร์ ห้อง 101', install_location: 'ตึก A ห้อง 101', status: 'active' },
     { asset_tag: `${tag}-PR-01`, name: `เครื่องพิมพ์ 50%, ชั้น (2) ${tag}`, status: 'active' },
     { asset_tag: `${tag}-PR-02`, name: `เครื่องพิมพ์ 50x ชั้น 2 ${tag}`, status: 'active' },
     { asset_tag: `${tag}-OLD`, name: 'เครื่องเก่า', status: 'retired' },
@@ -37,6 +37,13 @@ test('listEquipment matches asset tag or name and hides retired equipment', asyn
   expect((await listEquipment(reporter.db, { q: tag })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`, `${tag}-PR-01`, `${tag}-PR-02`]);
 });
 
+test('listEquipment returns the install location', async () => {
+  expect(await listEquipment(reporter.db, { q: `${tag}-ac` })).toEqual([
+    { id: expect.any(Number), assetTag: `${tag}-AC-01`, name: 'แอร์ ห้อง 101', installLocation: 'ตึก A ห้อง 101' },
+  ]);
+  expect((await listEquipment(reporter.db, { q: `${tag}-PR-01` }))[0]?.installLocation).toBeNull();
+});
+
 test('listEquipment treats , % _ ( ) " and * in the search text literally', async () => {
   expect((await listEquipment(reporter.db, { q: `50%, ชั้น (2) ${tag}` })).map((e) => e.assetTag)).toEqual([`${tag}-PR-01`]);
   expect((await listEquipment(reporter.db, { q: `50% ${tag}` })).map((e) => e.assetTag)).toEqual([]);
@@ -56,4 +63,9 @@ test('listEquipment returns at most 20 rows', async () => {
 test('listTechnicians lists technicians for staff and nothing for a reporter', async () => {
   expect((await listTechnicians(admin.db)).map((t) => t.id)).toContain(tech.id);
   expect(await listTechnicians(reporter.db)).toEqual([]);
+});
+
+test('getProfile returns the display name and role of a user the caller may see', async () => {
+  expect(await getProfile(tech.db, tech.id)).toEqual({ id: tech.id, displayName: expect.stringMatching(/^technician-/), role: 'technician' });
+  expect(await getProfile(reporter.db, tech.id)).toBeNull();
 });
