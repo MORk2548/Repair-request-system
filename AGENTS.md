@@ -20,7 +20,9 @@ An internal repair-request system for one organization. Reporters file repair ti
 |---|---|
 | Install dependencies | `corepack pnpm install` |
 | Run every package's tests | `corepack pnpm test` |
-| Run one package's tests | `corepack pnpm --filter @repair/core test` |
+| Run one package's tests | `corepack pnpm --filter @repair/core test` (the web app is `--filter web`) |
+| Start the web app on http://localhost:3000 (copy `apps/web/.env.example` to `apps/web/.env.local` first) | `corepack pnpm web:dev` |
+| Production build of the web app | `corepack pnpm --filter web build` |
 | Type-check everything | `corepack pnpm typecheck` |
 | Start local Supabase (Docker Desktop must run) | `corepack pnpm db:start` |
 | Rebuild the local database from migrations and load the dev seed | `corepack pnpm db:reset` |
@@ -43,7 +45,9 @@ Seed user ids start with `5eed0000-`, so pgTAP tests that insert fixed `00000000
 
 - `packages/core` holds rules with no network access: types, the ticket status machine, validation, notification and email builders. It ships TypeScript source (`exports` points at `src/index.ts`), with no build step.
 - `packages/core/src/status.ts` owns ticket statuses. `TRANSITIONS` is a flat table with one row per (from, to, role). Change who can move a ticket where only there, and keep the seed of the database table `status_transitions` in `supabase/migrations/0003_transition.sql` identical (`packages/core/test/parity.db.test.ts` enforces it). Ownership (the reporter owns the ticket, the technician is the assignee) is checked only in the database.
+- `packages/core/src/display.ts` holds the Thai labels (`STATUS_LABELS`, `PRIORITY_LABELS`) and `formatThaiDateTime` (Asia/Bangkok, Buddhist-era year, `dd/MM/yyyy HH:mm`). Web and mobile both use them, so never hard-code a status label or date format in an app. The photo limits (`MAX_PHOTOS`, `MAX_PHOTO_BYTES`, `PHOTO_MIME_TYPES`) live in `ticket.ts`.
 - `packages/api` owns every Supabase call the apps make (tables, RPCs, storage). Apps create their own `Db` client and pass it in. `rows.ts` is the only place that maps snake_case rows to core's camelCase types. `errors.ts` maps database exception messages to error classes through one table (`throwDbError`), so a new exception message gets a row there. Every api test needs the local stack, so the package has `test:db` and no `test`. The service-role key appears only in `packages/api/test/helpers.ts`, to create test users and lookup rows.
+- `apps/web` is the Next.js 15 App Router app (package name `web`). `middleware.ts` refreshes the Supabase session and sends signed-out users to `/login`. `lib/supabase-server.ts` (server components) and `lib/supabase-browser.ts` (client components) create the `Db` that `@repair/api` functions take; both use only the anon key from `.env.local`. Pages live in `app/` (`login`, `tickets`, `tickets/new`; `app/tickets/layout.tsx` draws the signed-in header). Components live in `components/` with their tests beside them; the tests mock `@repair/api` and the browser client, so `corepack pnpm --filter web test` needs no database. Styling is one stylesheet, `app/globals.css`, with color tokens on `:root`. The app pins TypeScript 6, not 7, because `next build` loads the TypeScript JS API, which TypeScript 7 does not ship.
 - `supabase/` holds `config.toml`, numbered SQL files in `migrations/` (schema, RLS, RPCs), and pgTAP tests in `tests/`, one file per concern, each self-contained inside `begin; ... rollback;`.
 - `current_app_role()` and `can_see_ticket()` in `supabase/migrations/0002_rls.sql` are the single source of who sees what. Every policy and view filters through them, so change visibility there and nowhere else.
 - `transition_ticket()` and `reassign_ticket()` in `supabase/migrations/0003_transition.sql` are the only way a ticket's status or assignee changes. Clients have no direct update on those columns.

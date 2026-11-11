@@ -4,6 +4,10 @@ import type { TicketStatus } from './status';
 export const PRIORITIES = ['low', 'normal', 'urgent'] as const;
 export type Priority = (typeof PRIORITIES)[number];
 
+export const MAX_PHOTOS = 5;
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
 const text = (label: string, min: number, max: number) => {
   const required = `กรุณากรอก${label}`;
   return z
