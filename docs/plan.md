@@ -227,13 +227,13 @@ test('whitespace-only resolution is rejected', () => expect(resolutionSchema.saf
   - `profiles`: อ่านแถวตัวเองได้, admin อ่านทั้งหมด; ชื่อของคนอื่นบนใบอ่านผ่าน view `ticket_people(id, display_name)` ตามสิทธิ์ของใบ; ผู้ใช้แก้ได้แค่ `expo_push_token` ของตัวเอง
   - trigger `enforce_photo_limit` (เกิน 5 รูปต่อใบ → exception `photo_limit`)
 
-- [ ] **Step 1: เขียนเทสต์ pgTAP ที่ล้มเหลว**
+- [x] **Step 1: เขียนเทสต์ pgTAP ที่ล้มเหลว**
   - `ticket_no.sql`: `generate_ticket_no('2026-11-30T17:30:00Z')` = `'RQ-2612-0001'` (เวลาไทยข้ามเป็น 1 ธ.ค. แล้ว); เรียกซ้ำเดือนเดียวกัน = `'RQ-2612-0002'`; `'2026-11-30T16:59:00Z'` = `'RQ-2611-0001'`
-  - `rls.sql` (ครอบ Review Focus ข้อ 3): ผู้ใช้ A เลือกใบของ B → `is_empty`; technician เห็นเฉพาะใบที่ถูกมอบหมาย; admin เห็นครบ; insert `client_request_id` ซ้ำ → `throws_ok '23505'`; insert รูปที่ 6 → `throws_ok 'photo_limit'`; reporter `update tickets set status = 'closed'` ตรง ๆ ต้องไม่มีผล (0 แถว); technician เห็นใบ `new` ของทุกคน แต่ไม่เห็นใบที่มอบหมายให้ช่างคนอื่นแล้ว; reporter select `technician_options` → `is_empty`; reporter insert `categories` → ถูกปฏิเสธ; บัญชีที่ `is_active = false` select `tickets` → `is_empty`; ใบที่อ้าง `equipment_id` ที่ไม่มีจริง → `throws_ok '23503'`
-- [ ] **Step 2: รัน** `supabase test db` — คาดว่า FAIL
-- [ ] **Step 3: เขียน migration สองไฟล์** ตาม Interfaces; `generate_ticket_no` ใช้ตาราง `ticket_counters(ym text primary key, last int)` กับ `insert … on conflict do update … returning` เพื่อกันเลขซ้ำเมื่อสร้างพร้อมกัน; ไม่ให้ role `authenticated` มีสิทธิ์ `update` ตรงบน `tickets.status/assignee_id/version` (ต้องผ่าน RPC ใน Task 4)
-- [ ] **Step 4: รัน** `supabase test db` — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(db): schema, ticket numbering and RLS"`
+  - `rls.sql` (ครอบ Review Focus ข้อ 3): ผู้ใช้ A เลือกใบของ B → `is_empty`; technician เห็นเฉพาะใบที่ถูกมอบหมาย; admin เห็นครบ; insert `client_request_id` ซ้ำ → `throws_ok '23505'`; insert รูปที่ 6 → `throws_ok 'photo_limit'`; reporter `update tickets set status = 'closed'` ตรง ๆ → `throws_ok '42501'` (ไม่มีสิทธิ์ update เลย) และ admin ยังเห็นสถานะเป็น `new`; technician เห็นใบ `new` ของทุกคน แต่ไม่เห็นใบที่มอบหมายให้ช่างคนอื่นแล้ว; reporter select `technician_options` → `is_empty`; reporter insert `categories` → ถูกปฏิเสธ; บัญชีที่ `is_active = false` select `tickets` → `is_empty`; ใบที่อ้าง `equipment_id` ที่ไม่มีจริง → `throws_ok '23503'`
+- [x] **Step 2: รัน** `supabase test db` — คาดว่า FAIL
+- [x] **Step 3: เขียน migration สองไฟล์** ตาม Interfaces; `generate_ticket_no` ใช้ตาราง `ticket_counters(ym text primary key, last int)` กับ `insert … on conflict do update … returning` เพื่อกันเลขซ้ำเมื่อสร้างพร้อมกัน; ไม่ให้ role `authenticated` มีสิทธิ์ `update` ตรงบน `tickets.status/assignee_id/version` (ต้องผ่าน RPC ใน Task 4)
+- [x] **Step 4: รัน** `supabase test db` — คาดว่า PASS
+- [x] **Step 5: Commit** `git commit -m "feat(db): schema, ticket numbering and RLS"`
 
 ---
 

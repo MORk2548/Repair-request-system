@@ -22,11 +22,16 @@ An internal repair-request system for one organization. Reporters file repair ti
 | Run every package's tests | `corepack pnpm test` |
 | Run one package's tests | `corepack pnpm --filter @repair/core test` |
 | Type-check everything | `corepack pnpm typecheck` |
+| Start local Supabase (Docker Desktop must run) | `corepack pnpm db:start` |
+| Rebuild the local database from migrations | `corepack pnpm db:reset` |
+| Run the pgTAP database tests | `corepack pnpm test:db` |
 
 ## Layout
 
 - `packages/core` holds rules with no network access: types, the ticket status machine, validation, notification and email builders. It ships TypeScript source (`exports` points at `src/index.ts`), with no build step.
 - `packages/core/src/status.ts` owns ticket statuses. `TRANSITIONS` is a flat table with one row per (from, to, role). Change who can move a ticket where only there, and keep the database table `status_transitions` identical (a parity test enforces it once Task 4 lands). Ownership (the reporter owns the ticket, the technician is the assignee) is checked only in the database.
+- `supabase/` holds `config.toml`, numbered SQL files in `migrations/` (schema, RLS, RPCs), and pgTAP tests in `tests/`, one file per concern, each self-contained inside `begin; ... rollback;`.
+- `current_app_role()` and `can_see_ticket()` in `supabase/migrations/0002_rls.sql` are the single source of who sees what. Every policy and view filters through them, so change visibility there and nowhere else.
 
 ## Rules
 
