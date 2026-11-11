@@ -23,9 +23,21 @@ An internal repair-request system for one organization. Reporters file repair ti
 | Run one package's tests | `corepack pnpm --filter @repair/core test` |
 | Type-check everything | `corepack pnpm typecheck` |
 | Start local Supabase (Docker Desktop must run) | `corepack pnpm db:start` |
-| Rebuild the local database from migrations | `corepack pnpm db:reset` |
+| Rebuild the local database from migrations and load the dev seed | `corepack pnpm db:reset` |
 | Run the pgTAP tests, the core parity test and the `@repair/api` tests (the local stack must be running) | `corepack pnpm test:db` |
 | Regenerate `packages/api/src/database.types.ts` after a migration (the local stack must be running) | `corepack pnpm gen:types` |
+
+## Dev accounts
+
+`supabase/seed.sql` (loaded only by `db:reset`) creates the old helpdesk's departments, categories, sample equipment and 10 users. Every account signs in with the password `helpdesk-dev`.
+
+| Role | Email |
+|---|---|
+| admin | `admin@helpdesk.test` |
+| technician | `kittipong@helpdesk.test`, `orathai@helpdesk.test`, `nattapon@helpdesk.test` |
+| reporter | `nattawut@helpdesk.test`, `pimchanok@helpdesk.test`, `thanaporn@helpdesk.test`, `warin@helpdesk.test`, `suppachai@helpdesk.test`, `orathai.k@helpdesk.test` |
+
+Seed user ids start with `5eed0000-`, so pgTAP tests that insert fixed `00000000-…` ids never collide with them. Tests must create their own rows and never assume the database is empty.
 
 ## Layout
 

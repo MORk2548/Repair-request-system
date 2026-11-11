@@ -317,8 +317,15 @@ test('listCategories for a reporter hides inactive categories', /* … */);
 ### Task 6: เว็บ — ล็อกอิน, แจ้งซ่อม, รายการใบของฉัน
 
 **Files:**
-- Create: `apps/web/app/login/page.tsx`, `apps/web/app/tickets/page.tsx`, `apps/web/app/tickets/new/page.tsx`, `apps/web/components/{TicketForm.tsx, TicketTable.tsx}`, `apps/web/lib/supabase-server.ts`
+- Create: `apps/web/app/login/page.tsx`, `apps/web/app/tickets/page.tsx`, `apps/web/app/tickets/new/page.tsx`, `apps/web/components/{TicketForm.tsx, TicketTable.tsx}`, `apps/web/lib/supabase-server.ts`, `supabase/seed.sql`
 - Test: `apps/web/components/TicketForm.test.tsx`
+
+- [x] **Step 0: seed ข้อมูล dev** `supabase/seed.sql` (โหลดโดย `supabase db reset` เท่านั้น; ย้ายมาจาก Task 12) คัดจาก `Repair System/database/seed.sql`:
+  - `departments`: 7 แผนก (ใช้ `name_th`)
+  - ผู้ใช้ 10 คน (อีเมล `@helpdesk.test` ชุดเดิม): insert `auth.users` + `auth.identities` ด้วย `crypt('helpdesk-dev', gen_salt('bf'))` และ uuid คงที่ `5eed0000-0000-0000-0000-0000000000NN` (ไม่ใช้ `00000000-…` เพราะ pgTAP ใช้ช่วงนั้นอยู่) แล้ว insert `profiles` ด้วยชื่อ บทบาทที่แมปแล้ว (admin 1, technician 3, reporter 6) และแผนก; รหัสผ่าน dev เขียนไว้หัว `seed.sql` และ `AGENTS.md`
+  - `categories`: ไฟฟ้า, ประปา, เครื่องปรับอากาศ, เฟอร์นิเจอร์, เครือข่าย (sort 1–5), อื่น ๆ (99); `equipment`: ตัวอย่าง 6 รายการกระจายแผนก
+  - ไม่ระบุ id ของ identity column เอง เพื่อให้แถวที่เทสต์ insert ทีหลังไม่ชน
+  - ไม่นำ `branches`, `notifications`, `login_attempts`, การตั้งค่าธีม/ภาษา หรือใบงานจาก `tests/fixtures.sql` มา
 
 **Interfaces:**
 - Consumes: `createTicket`, `attachPhoto`, `listTickets`, `createTicketSchema`
@@ -583,13 +590,9 @@ test('VersionConflictError shows reload message', /* … */);
 - Produces: เว็บ deploy บน Vercel, ฐานข้อมูล/Edge Function บน Supabase project จริง, แอป build ด้วย EAS (internal distribution)
 
 - [ ] **Step 1: เขียน Playwright smoke** ที่ล้มเหลว: reporter ล็อกอิน → สร้างใบแจ้งซ่อมพร้อมรูป → เห็นเลข `RQ-` ในรายการ; admin ล็อกอิน → มอบหมายช่าง → ช่างล็อกอิน → `ส่งต่อช่างคนอื่น` พร้อมเหตุผล → ช่างคนใหม่ล็อกอิน → `เริ่มงาน` → `เสร็จงาน`; (ช่องวิธีแก้ไขว่างต้องกดส่งไม่ได้); reporter เลือกอุปกรณ์ตอนแจ้งแล้วเห็นในหน้า detail; admin ปิดบัญชีผู้ใช้หนึ่งคนแล้วผู้ใช้นั้นล็อกอินไม่ได้; reporter `ปิดงาน` แล้วใบอยู่สถานะ `closed` และไม่มีปุ่มเหลือ; ระหว่างทางตรวจว่าเซิร์ฟเวอร์จำลอง Resend (ตั้ง `RESEND_API_URL` ชี้มาที่เทสต์) ได้รับอีเมลถึงผู้แจ้งตอน `assigned` และ `done`
-- [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local — คาดว่า FAIL จนกว่า seed ผู้ใช้ทดสอบสามบทบาท (`supabase/seed.sql`) จะพร้อม
-- [ ] **Step 3: เพิ่ม seed, `.env.example`, README;** `supabase/seed.sql` (โหลดโดย `supabase db reset` เท่านั้น) คัดจาก `Repair System/database/seed.sql`:
-  - `departments`: 7 แผนก (ใช้ `name_th`)
-  - ผู้ใช้ 10 คน (อีเมล `@helpdesk.test` ชุดเดิม): insert `auth.users` + `auth.identities` ด้วย `crypt('<dev password>', gen_salt('bf'))` และ uuid คงที่ แล้ว insert `profiles` ด้วยชื่อ บทบาทที่แมปแล้ว (admin 1, technician 3, reporter 6) และแผนก; รหัสผ่าน dev เขียนไว้หัว `seed.sql` และ README
-  - `categories`: ไฟฟ้า, ประปา, เครื่องปรับอากาศ, เฟอร์นิเจอร์, เครือข่าย, อื่น ๆ; `equipment`: ตัวอย่าง 5–6 รายการกระจายแผนก
-  - ไม่นำ `branches`, `notifications`, `login_attempts`, การตั้งค่าธีม/ภาษา หรือใบงานจาก `tests/fixtures.sql` มา
-  
+- [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local (ใช้บัญชี dev จาก `supabase/seed.sql`) — คาดว่า FAIL
+- [ ] **Step 3: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
+
   จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`) และ Database Webhook; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
 - [ ] **Step 4: รัน** `pnpm exec playwright test` — คาดว่า PASS; แล้วลองบนมือถือจริงหนึ่งเครื่อง: สร้างใบ → admin มอบหมาย → ได้ push และอีเมลภายใน 1 นาที (ตรวจว่าอีเมลไม่เข้าสแปม)
 - [ ] **Step 5: Commit** `git commit -m "chore: e2e smoke test and deployment docs"`
