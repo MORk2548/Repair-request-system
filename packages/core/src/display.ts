@@ -1,5 +1,6 @@
-import type { TicketStatus } from './status';
-import type { Priority, TicketEventAction } from './ticket';
+import type { EquipmentStatus } from './admin.ts';
+import type { Role, TicketStatus } from './status.ts';
+import type { Priority, TicketEventAction } from './ticket.ts';
 
 export const STATUS_LABELS: Readonly<Record<TicketStatus, string>> = {
   new: 'ใหม่',
@@ -14,6 +15,18 @@ export const PRIORITY_LABELS: Readonly<Record<Priority, string>> = {
   low: 'ต่ำ',
   normal: 'ปกติ',
   urgent: 'ด่วน',
+};
+
+export const ROLE_LABELS: Readonly<Record<Role, string>> = {
+  reporter: 'ผู้แจ้ง',
+  technician: 'ช่าง',
+  admin: 'ผู้ดูแลระบบ',
+};
+
+export const EQUIPMENT_STATUS_LABELS: Readonly<Record<EquipmentStatus, string>> = {
+  active: 'ใช้งาน',
+  under_repair: 'กำลังซ่อม',
+  retired: 'ปลดระวาง',
 };
 
 export const EVENT_LABELS: Readonly<Record<TicketEventAction, string>> = {

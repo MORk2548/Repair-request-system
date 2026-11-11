@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { TicketStatus } from './status';
+import type { TicketStatus } from './status.ts';
 
 export const PRIORITIES = ['low', 'normal', 'urgent'] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -8,7 +8,7 @@ export const MAX_PHOTOS = 5;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
-const text = (label: string, min: number, max: number) => {
+export const requiredText = (label: string, min: number, max: number) => {
   const required = `กรุณากรอก${label}`;
   return z
     .string(required)
@@ -24,9 +24,9 @@ const text = (label: string, min: number, max: number) => {
 const categoryRequired = 'กรุณาเลือกหมวดหมู่';
 
 export const createTicketSchema = z.object({
-  title: text('หัวข้อ', 3, 100),
-  description: text('รายละเอียด', 1, 2000),
-  location: text('สถานที่', 1, 100),
+  title: requiredText('หัวข้อ', 3, 100),
+  description: requiredText('รายละเอียด', 1, 2000),
+  location: requiredText('สถานที่', 1, 100),
   categoryId: z.int(categoryRequired).positive(categoryRequired),
   priority: z.enum(PRIORITIES).default('normal'),
   equipmentId: z.int().positive().nullable().default(null),
@@ -34,9 +34,9 @@ export const createTicketSchema = z.object({
 });
 export type CreateTicketInput = z.output<typeof createTicketSchema>;
 
-export const resolutionSchema = text('วิธีแก้ไข', 1, 1000);
+export const resolutionSchema = requiredText('วิธีแก้ไข', 1, 1000);
 
-export const commentSchema = text('ความคิดเห็น', 1, 1000);
+export const commentSchema = requiredText('ความคิดเห็น', 1, 1000);
 
 export type Ticket = {
   id: string;

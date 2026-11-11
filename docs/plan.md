@@ -79,7 +79,7 @@ packages/core/src/{status.ts, actions.ts, display.ts, ticket.ts, notify.ts, emai
 packages/core/test/{status.test.ts, ticket.test.ts, notify.test.ts, email.test.ts, parity.test.ts}
 packages/api/src/{client.ts, rows.ts, postgrest.ts, tickets.ts, photos.ts, comments.ts, lookups.ts, admin.ts, errors.ts, database.types.ts}
 packages/api/test/*.test.ts                                      # รันกับ Supabase local
-supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_transition.sql, 0004_photo_owner_delete.sql, 0005_reports.sql}
+supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_transition.sql, 0004_photo_owner_delete.sql, 0005_admin.sql, 0006_reports.sql}
 supabase/tests/{ticket_no.sql, rls.sql, transition.sql, photo_delete.sql, reports.sql}
 supabase/seed.sql                                                # ข้อมูล dev จากโปรเจกต์ PHP เดิม
 supabase/functions/notify-ticket-event/{index.ts, process.ts, process.test.ts, email.ts}
@@ -389,21 +389,21 @@ test('VersionConflictError shows "มีผู้อื่นอัปเดต�
 ### Task 7.5: เว็บ — หน้า admin (ผู้ใช้, แผนก, หมวด, อุปกรณ์)
 
 **Files:**
-- Create: `supabase/functions/admin-users/{index.ts, handler.ts}`, `packages/api/src/admin.ts`, `apps/web/app/(app)/admin/{users,lists,equipment}/page.tsx`
-- Modify: `apps/web/middleware.ts` (ผู้ที่ไม่ใช่ admin เข้า `/admin/*` → redirect `/tickets`)
-- Test: `supabase/functions/admin-users/handler.test.ts`
+- Create: `supabase/migrations/0005_admin.sql`, `supabase/functions/admin-users/{index.ts, handler.ts, deno.json}`, `supabase/templates/invite.html`, `packages/core/src/admin.ts`, `packages/api/src/admin.ts`, `apps/web/app/auth/confirm/route.ts`, `apps/web/app/set-password/page.tsx`, `apps/web/app/(app)/admin/{users,lists,equipment}/page.tsx`, `apps/web/components/{Field,useAction,InviteUserForm,UserRow,LookupRow,EquipmentRow,SetPasswordForm}.tsx`, root `vitest.config.ts` และ `tsconfig.json`
+- Modify: `apps/web/middleware.ts` (`/auth/confirm` เปิดให้ผู้ที่ยังไม่เข้าระบบ; ผู้ที่ไม่ใช่ admin เข้า `/admin/*` → redirect `/tickets`), `apps/web/app/(app)/layout.tsx` (ลิงก์ ผู้ใช้ / แผนกและหมวด / อุปกรณ์ เฉพาะ admin), `apps/web/app/login/page.tsx` (`?error=link`), `packages/api/src/lookups.ts`, `packages/core/src/display.ts`, `supabase/config.toml` (template คำเชิญ, `additional_redirect_urls`)
+- Test: `supabase/functions/admin-users/handler.test.ts`, `supabase/tests/equipment_status.sql`, `supabase/tests/rls.sql`, `packages/api/test/{admin,lookups,tickets}.test.ts`, `packages/core/test/{admin,display}.test.ts`, `apps/web/components/admin.test.tsx`
 
 **Interfaces:**
 - Consumes: ตาราง `profiles`, `departments`, `categories`, `equipment` (Task 3)
 - Produces:
-  - Edge Function `admin-users` (service-role จาก secret เท่านั้น; ตรวจก่อนว่าผู้เรียกเป็น admin ที่ active):
-    - `create { email, displayName, role, departmentId }` → `auth.admin.inviteUserByEmail` แล้วสร้าง `profiles`
-    - `update { userId, role?, departmentId?, isActive? }` → `isActive = false` สั่ง `ban_duration` ใน Auth ด้วย; `true` ยกเลิก ban
-  - `handler.ts` ไม่ import ของ Deno (แบบเดียวกับ `process.ts`) รับ deps `{ getCaller, inviteUser, upsertProfile, setBan }`
-  - `admin.ts`: `adminCreateUser(db, input)`, `adminUpdateUser(db, input)` เรียก Edge Function; CRUD lookup เขียนตรงผ่าน RLS (admin เท่านั้น)
-  - `/admin/lists`: แผนกและหมวด เพิ่ม/แก้/ปิดใช้งาน (ไม่ลบ เพราะมีใบเก่าอ้างอยู่); `/admin/equipment`: รายการ + ฟอร์มเพิ่ม/แก้อุปกรณ์
+  - `0005_admin.sql`: ผู้ใช้ที่ active ทุกคนอ่านแผนก หมวด อุปกรณ์ได้ทุกแถว (ใบเก่ายังแสดงชื่อที่ปิดใช้งานแล้ว) ส่วน picker ซ่อนเองใน `@repair/api`; `sync_equipment_status(p_equipment_id)` (client เรียกไม่ได้) ตั้งอุปกรณ์เป็น `under_repair` เมื่อมีใบ `in_progress` อยู่ ไม่งั้น `active` และไม่แตะ `retired`; `transition_ticket` และ `reassign_ticket` เรียกหลังเปลี่ยนสถานะทุกครั้ง
+  - Edge Function `admin-users` (service-role จาก env ของ function เท่านั้น; `verify_jwt` เปิด): body เป็น zod discriminated union ใน core `admin.ts`: `list` → profiles พร้อมอีเมล; `create { email, displayName, role, departmentId }` → `inviteUserByEmail` (redirect `${WEB_BASE_URL}/auth/confirm`) แล้ว upsert `profiles` (ถ้าเขียน profile ไม่ได้ ลบ Auth user ทิ้ง); `update { userId, displayName?, role?, departmentId?, isActive? }` → `isActive` สั่ง `ban_duration` `876000h` / `none` ด้วย
+  - กฎใน `handler.ts` (ไม่ import ของ Deno; deps `{ getCaller, listUsers, listProfiles, inviteUser, upsertProfile, updateProfile, setBan, deleteUser }`): ไม่มี token → 401; ไม่ใช่ admin ที่ active → 403 ก่อนเรียก dep อื่น; body ผิด → 400 ข้อความไทยจาก zod; อีเมลที่มีใน Auth แล้ว (ตรวจก่อนเชิญ เพราะ Auth ส่งคำเชิญซ้ำให้อีเมลที่ยังไม่ยืนยันแทนที่จะ error) → 409 "อีเมลนี้มีผู้ใช้แล้ว"; ปิดบัญชีหรือเปลี่ยนบทบาทตัวเอง → 400 "ไม่สามารถปิดบัญชีหรือเปลี่ยนบทบาทของตัวเองได้"
+  - รับคำเชิญ: อีเมล (`templates/invite.html`) ลิงก์ไป `/auth/confirm?token_hash=…&type=invite` → `verifyOtp` → `/set-password` (อย่างน้อย 8 ตัว ยืนยันตรงกัน) → `/tickets`; ลิงก์เสีย → `/login?error=link` "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
+  - `packages/api/src/admin.ts`: `adminListUsers`, `adminCreateUser`, `adminUpdateUser` เรียก Edge Function (ข้อผิดพลาด → `AdminError` พร้อมข้อความไทย); `saveDepartment`, `saveCategory`, `saveEquipment` เขียนตรงผ่าน RLS (admin เท่านั้น; รหัสทรัพย์สินซ้ำ → `DuplicateAssetTagError`); `listCategories` / `listDepartments` / `listEquipment` ซ่อนรายการที่ปิด/ปลดระวาง เว้นแต่ส่ง `{ includeInactive: true }`
+  - `/admin/users`: ตาราง ชื่อ อีเมล บทบาท แผนก สถานะ, ฟอร์มเชิญ, แก้ชื่อ/บทบาท/แผนกรายแถว, ปิดใช้งาน/เปิดใช้งานพร้อมยืนยันในหน้า (แถวของตัวเองไม่มีปุ่มปิดและไม่มีช่องบทบาท); `/admin/lists`: แผนกและหมวด เพิ่ม/เปลี่ยนชื่อ/ลำดับ (หมวด)/ปิด-เปิด ไม่ลบ; `/admin/equipment`: ตาราง + ฟอร์มเพิ่ม/แก้ (รหัสทรัพย์สินซ้ำ → "รหัสทรัพย์สินนี้มีอยู่แล้ว")
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
 
 ```ts
 test('non-admin caller gets 403 and no Auth API is called', /* … */);
@@ -413,17 +413,19 @@ test('duplicate email returns Thai error "อีเมลนี้มีผู�
 test('deactivating a user also bans them in Auth', /* … */);
 ```
 
-- [ ] **Step 2: รัน** `pnpm exec vitest run handler` — คาดว่า FAIL
-- [ ] **Step 3: เขียน handler, index.ts, admin.ts และหน้า admin ทั้งสาม**
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(web): admin pages for users, lists and equipment"`
+พร้อม pgTAP `equipment_status.sql` (in_progress → ส่งต่อ → active; ยกเลิกหลังส่งต่อยัง active; สองใบบนอุปกรณ์เดียว ปิดใบหนึ่งยัง under_repair; retired คงเดิม) และเทสต์เว็บ (ฟอร์มเชิญตรวจข้อมูลและแสดง 409, แถวตัวเองไม่มีปุ่มปิด, ปิดใช้งานต้องยืนยัน, ปิดหมวดเรียก save ด้วย `isActive: false`, รหัสทรัพย์สินซ้ำ)
+
+- [x] **Step 2: รัน** `corepack pnpm test` และ `corepack pnpm test:db` — คาดว่า FAIL
+- [x] **Step 3: เขียน migration, handler, index.ts, admin.ts, หน้ารับคำเชิญ และหน้า admin ทั้งสาม**
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS (`test:db` ต้องให้ function ถูก serve อยู่ ซึ่ง `db:start` ทำให้เอง) และพิสูจน์คำเชิญจริง: เชิญจากหน้า `/admin/users` อ่านอีเมลที่ http://127.0.0.1:54324 เปิดลิงก์ ตั้งรหัสผ่าน แล้วเข้าระบบด้วยรหัสนั้น
+- [x] **Step 5: Commit** `fix(db): lookup visibility and derived equipment status` แล้ว `feat(web): admin pages for users, lists and equipment`
 
 ---
 
 ### Task 7.6: เว็บ — หน้าสรุปรายงานของ admin
 
 **Files:**
-- Create: `supabase/migrations/0005_reports.sql`, `apps/web/app/(app)/admin/reports/page.tsx`, `packages/api/src/reports.ts`
+- Create: `supabase/migrations/0006_reports.sql`, `apps/web/app/(app)/admin/reports/page.tsx`, `packages/api/src/reports.ts`
 - Test: `supabase/tests/reports.sql`
 
 **Interfaces:**

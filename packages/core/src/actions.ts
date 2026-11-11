@@ -1,5 +1,5 @@
-import { canReassign, nextStatuses, type Role, type TicketStatus } from './status';
-import type { Ticket } from './ticket';
+import { canReassign, nextStatuses, type Role, type TicketStatus } from './status.ts';
+import type { Ticket } from './ticket.ts';
 
 export type TicketAction =
   | { kind: 'transition'; to: TicketStatus; label: string; needs?: 'assignee' | 'resolution' }

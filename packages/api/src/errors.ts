@@ -23,6 +23,21 @@ export class PhotoInvalidError extends Error {
   }
 }
 
+export class DuplicateAssetTagError extends Error {
+  name = 'DuplicateAssetTagError';
+}
+// a refusal from the admin-users Edge Function; message is the Thai text it returned
+export class AdminError extends Error {
+  name = 'AdminError';
+  constructor(
+    message: string,
+    readonly status: number,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+  }
+}
+
 // keys are the exception messages raised in supabase/migrations
 const DB_ERRORS = {
   version_conflict: VersionConflictError,

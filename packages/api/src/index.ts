@@ -6,3 +6,4 @@ export * from './tickets';
 export * from './photos';
 export * from './comments';
 export * from './lookups';
+export * from './admin';

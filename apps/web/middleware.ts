@@ -1,10 +1,13 @@
 import { createServerClient } from '@supabase/ssr';
+import { getProfile, type Database } from '@repair/api';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAnonKey, supabaseUrl } from './lib/env';
 
+const PUBLIC_PATHS = ['/login', '/auth/confirm'];
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (list) => {
@@ -19,7 +22,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const target = user ? (path === '/' || path === '/login' ? '/tickets' : null) : path === '/login' ? null : '/login';
+  let target: string | null = null;
+  if (!user) target = PUBLIC_PATHS.includes(path) ? null : '/login';
+  else if (path === '/' || path === '/login') target = '/tickets';
+  else if ((path === '/admin' || path.startsWith('/admin/')) &&(await getProfile(supabase, user.id))?.role !== 'admin') target = '/tickets';
   if (!target) return response;
 
   const redirect = NextResponse.redirect(new URL(target, request.url));
