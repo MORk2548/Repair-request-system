@@ -24,14 +24,16 @@ An internal repair-request system for one organization. Reporters file repair ti
 | Type-check everything | `corepack pnpm typecheck` |
 | Start local Supabase (Docker Desktop must run) | `corepack pnpm db:start` |
 | Rebuild the local database from migrations | `corepack pnpm db:reset` |
-| Run the pgTAP database tests | `corepack pnpm test:db` |
+| Run the pgTAP tests and the core parity test (the local stack must be running) | `corepack pnpm test:db` |
 
 ## Layout
 
 - `packages/core` holds rules with no network access: types, the ticket status machine, validation, notification and email builders. It ships TypeScript source (`exports` points at `src/index.ts`), with no build step.
-- `packages/core/src/status.ts` owns ticket statuses. `TRANSITIONS` is a flat table with one row per (from, to, role). Change who can move a ticket where only there, and keep the database table `status_transitions` identical (a parity test enforces it once Task 4 lands). Ownership (the reporter owns the ticket, the technician is the assignee) is checked only in the database.
+- `packages/core/src/status.ts` owns ticket statuses. `TRANSITIONS` is a flat table with one row per (from, to, role). Change who can move a ticket where only there, and keep the seed of the database table `status_transitions` in `supabase/migrations/0003_transition.sql` identical (`packages/core/test/parity.db.test.ts` enforces it). Ownership (the reporter owns the ticket, the technician is the assignee) is checked only in the database.
 - `supabase/` holds `config.toml`, numbered SQL files in `migrations/` (schema, RLS, RPCs), and pgTAP tests in `tests/`, one file per concern, each self-contained inside `begin; ... rollback;`.
 - `current_app_role()` and `can_see_ticket()` in `supabase/migrations/0002_rls.sql` are the single source of who sees what. Every policy and view filters through them, so change visibility there and nowhere else.
+- `transition_ticket()` and `reassign_ticket()` in `supabase/migrations/0003_transition.sql` are the only way a ticket's status or assignee changes. Clients have no direct update on those columns.
+- Supabase default privileges grant every new public table to `anon` and `authenticated` and every new function to `public`. Each migration that adds one must enable RLS and revoke explicitly, then grant back only what clients need (see `0003_transition.sql`).
 
 ## Rules
 
