@@ -56,3 +56,5 @@ export type Ticket = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TicketEventAction = 'created' | 'status' | 'assigned' | 'reassigned' | 'comment';

@@ -75,7 +75,7 @@
 
 ```
 package.json, pnpm-workspace.yaml, tsconfig.base.json
-packages/core/src/{status.ts, ticket.ts, notify.ts, email.ts, index.ts}   # กฎล้วน ไม่แตะเครือข่าย
+packages/core/src/{status.ts, actions.ts, display.ts, ticket.ts, notify.ts, email.ts, index.ts}   # กฎล้วน ไม่แตะเครือข่าย
 packages/core/test/{status.test.ts, ticket.test.ts, notify.test.ts, email.test.ts, parity.test.ts}
 packages/api/src/{client.ts, rows.ts, postgrest.ts, tickets.ts, photos.ts, comments.ts, lookups.ts, admin.ts, errors.ts, database.types.ts}
 packages/api/test/*.test.ts                                      # รันกับ Supabase local
@@ -84,8 +84,8 @@ supabase/tests/{ticket_no.sql, rls.sql, transition.sql, photo_delete.sql, report
 supabase/seed.sql                                                # ข้อมูล dev จากโปรเจกต์ PHP เดิม
 supabase/functions/notify-ticket-event/{index.ts, process.ts, process.test.ts, email.ts}
 supabase/functions/admin-users/{index.ts, handler.ts, handler.test.ts}
-apps/web/app/{login, tickets, tickets/new, tickets/[id]}/page.tsx
-apps/web/app/admin/{users, lists, equipment, reports}/page.tsx
+apps/web/app/login/page.tsx, apps/web/app/(app)/{layout.tsx, tickets, tickets/new, tickets/[id]}  # (app) = route group ของหน้าที่ต้องล็อกอิน
+apps/web/app/(app)/admin/{users, lists, equipment, reports}/page.tsx
 apps/web/components/{TicketForm.tsx, TicketTable.tsx, StatusActions.tsx, CommentList.tsx}
 apps/mobile/app/{(auth)/login.tsx, (tabs)/tickets.tsx, tickets/new.tsx, tickets/[id].tsx}
 apps/mobile/lib/push.ts
@@ -358,16 +358,18 @@ test('photo upload failure keeps the ticket and shows retry button', async () =>
 ### Task 7: เว็บ — รายละเอียดใบ, แดชบอร์ดแอดมิน/ช่าง, เปลี่ยนสถานะ
 
 **Files:**
-- Create: `apps/web/app/tickets/[id]/page.tsx`, `apps/web/components/{StatusActions.tsx, CommentList.tsx}`
-- Modify: `apps/web/components/TicketTable.tsx` (เพิ่มตัวกรองสถานะ), `apps/web/app/tickets/page.tsx` (admin เห็นทุกใบ, technician มีแท็บ "คิวใบใหม่" และ "งานของฉัน")
-- Test: `apps/web/components/StatusActions.test.tsx`
+- Create: `packages/core/src/actions.ts`, `apps/web/app/(app)/tickets/[id]/{page.tsx, not-found.tsx}`, `apps/web/components/{StatusActions.tsx, CommentList.tsx}`, `apps/web/lib/session.ts`
+- Modify: ย้าย `apps/web/app/tickets/` ไปไว้ใต้ route group `apps/web/app/(app)/` และย้าย header จาก `tickets/layout.tsx` เป็น `(app)/layout.tsx` ให้หน้า `/admin` ของ Task 7.5 ใช้ร่วม (URL ไม่เปลี่ยน); `apps/web/app/(app)/tickets/page.tsx` (admin เห็นทุกใบพร้อมตัวกรองสถานะ `?status=`, technician มีแท็บ "งานของฉัน" (ค่าเริ่มต้น) และ "คิวใบใหม่" `?tab=queue`; ตัวกรองอยู่ในหน้า ไม่ใช่ใน `TicketTable`); `packages/core/src/display.ts` (`EVENT_LABELS`, `eventLabel`); `packages/api/src/tickets.ts` (`listTickets` กรอง `assigneeId`; `getTicket` คืน `categoryName`, `equipment`, `people` (ชื่อจาก view `ticket_people`) และคืน `null` เมื่อ id ไม่ใช่ uuid)
+- Test: `packages/core/test/{actions.test.ts, display.test.ts}`, `apps/web/components/{StatusActions.test.tsx, CommentList.test.tsx}`, `packages/api/test/tickets.test.ts`
 
 **Interfaces:**
-- Consumes: `getTicket`, `transitionTicket`, `addComment`, `nextStatuses`, `VersionConflictError`
+- Consumes: `getTicket`, `listTickets`, `listTechnicians`, `transitionTicket`, `reassignTicket`, `addComment`, `nextStatuses`, `canReassign`, `resolutionSchema`, `commentSchema`, `VersionConflictError`, `ForbiddenTransitionError`
 - Produces:
-  - `<StatusActions ticket={Ticket} role={Role} technicians={{ id: string; displayName: string }[]} onChanged={(t: Ticket) => void} />` — แสดงปุ่มเฉพาะสถานะที่ `nextStatuses(ticket.status, role)` อนุญาต; ปุ่ม "มอบหมายช่าง" เปิดตัวเลือกช่าง (admin); technician บนใบ `new` เห็นปุ่ม "รับงาน" (ส่ง `assigneeId` = ตัวเอง); เมื่อ `canReassign(...)` และผู้ใช้เป็นช่างผู้ถูกมอบหมายหรือ admin แสดงปุ่ม "ส่งต่อช่างคนอื่น" เปิดตัวเลือกช่าง (ไม่รวมคนปัจจุบัน) + ช่องเหตุผลบังคับ
+  - `ticketActions(ticket: Pick<Ticket, 'status' | 'reporterId' | 'assigneeId'>, user: { id; role }): TicketAction[]` ใน `@repair/core` (มือถือ Task 11 ใช้ร่วม) — เริ่มจาก `nextStatuses(status, role)` แล้วใช้กฎเจ้าของเดียวกับฐานข้อมูล: reporter ต้องเป็นผู้แจ้ง; technician ต้องเป็นผู้ถูกมอบหมาย ยกเว้นใบ `new` ที่ได้ "รับงาน"; admin ได้ทุกปุ่มและได้ "มอบหมายช่าง" (`needs: 'assignee'`); เพิ่ม "ส่งต่อช่างคนอื่น" เมื่อ `canReassign` และเป็น admin หรือผู้ถูกมอบหมาย; ป้ายปุ่มอยู่ในตารางเดียวตาม `${from}>${to}` ("เสร็จงาน" มี `needs: 'resolution'`) ฐานข้อมูลยังเป็นผู้ตัดสิน ฟังก์ชันนี้แค่ซ่อนปุ่มที่จะถูกปฏิเสธ
+  - `<StatusActions ticket={Ticket} user={{ id: string; role: Role }} technicians={Technician[]} />` — แสดงปุ่มจาก `ticketActions`; แผงเป็น state machine `idle | assign | done | reassign | cancel | conflict` + `pending` + ข้อความ error; ส่ง `expectedVersion = ticket.version` ทุกครั้ง; ปุ่มทั้งหมดปิดระหว่างรอผล; "มอบหมายช่าง" เปิดตัวเลือกช่าง; "รับงาน" ส่ง `assigneeId` = ตัวเอง; "ส่งต่อช่างคนอื่น" เปิดตัวเลือกช่าง (ไม่รวมคนปัจจุบัน) + ช่องเหตุผลบังคับ ("กรุณากรอกเหตุผล"); "ยกเลิกใบแจ้ง" ถามยืนยันในหน้า (ไม่ใช้ `window.confirm`); สำเร็จแล้ว `router.refresh()` (หน้า server ส่ง `onChanged` ให้ client component ไม่ได้ เหตุผลเดียวกับ `TicketForm`) ยกเว้นช่างที่ส่งต่องานซึ่งมองไม่เห็นใบนั้นแล้ว จึงไป `/tickets`; หน้า detail ใส่ `key={ticket.version}` ให้แผงเริ่มใหม่เมื่อข้อมูลใหม่มาถึง
+  - `<CommentList ticketId comments people />` — เรียงเก่าไปใหม่ พร้อมชื่อผู้เขียนและวันที่ไทย; ฟอร์มตรวจด้วย `commentSchema` ส่งสำเร็จแล้วล้างช่องและ `router.refresh()`
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** (นอกจากห้าข้อด้านล่าง: "รับงาน" ส่ง `assigneeId` ของตัวเองและ `expectedVersion`, "ยกเลิกใบแจ้ง" ต้องผ่านขั้นยืนยัน, ปุ่มปิดระหว่างรอผล, `ForbiddenTransitionError` แสดง "คุณไม่มีสิทธิ์ทำรายการนี้", error อื่นแสดง "ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง", ช่างที่ส่งต่องานกลับไป `/tickets`; `actions.test.ts` สำหรับ `ticketActions`; `CommentList.test.tsx`: ความคิดเห็นว่างแสดงข้อความไทยและไม่เรียก `addComment`, ส่งสำเร็จแล้วช่องว่าง):
 
 ```tsx
 test('reporter on a done ticket sees only "ปิดงาน" and "ขอแก้ไขใหม่"', /* … */);
@@ -377,17 +379,17 @@ test('"ส่งต่อช่างคนอื่น" requires a reason and e
 test('VersionConflictError shows "มีผู้อื่นอัปเดตใบนี้แล้ว กรุณาโหลดใหม่" and a reload button, ticket state unchanged', /* … */);
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter web test StatusActions` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `StatusActions`, `CommentList` และหน้า detail** — ส่ง `expectedVersion = ticket.version` ทุกครั้ง; ตอนชน version ให้ refetch เมื่อกดปุ่มโหลดใหม่ ไม่ refetch เงียบ ๆ; ปุ่ม "เสร็จงาน" เปิดช่องกรอกวิธีแก้ไขก่อนส่ง (ตรวจด้วย `resolutionSchema`); หน้า detail แสดงอุปกรณ์ วิธีแก้ไข และวันที่แก้ไขเสร็จ
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS (เพิ่มเคส: กด "เสร็จงาน" โดยไม่กรอกวิธีแก้ไข → เห็น "กรุณากรอกวิธีแก้ไข" และไม่เรียก `transitionTicket`)
-- [ ] **Step 5: Commit** `git commit -m "feat(web): ticket detail, status actions and staff dashboard"`
+- [x] **Step 2: รัน** `pnpm --filter web test StatusActions` — คาดว่า FAIL
+- [x] **Step 3: เขียน `StatusActions`, `CommentList` และหน้า detail** — ส่ง `expectedVersion = ticket.version` ทุกครั้ง; ตอนชน version แสดงข้อความพร้อมปุ่ม "โหลดใหม่" ที่เรียก `router.refresh()` ไม่ refetch เงียบ ๆ และใบที่แสดงไม่เปลี่ยนจนกว่าจะกด; ปุ่ม "เสร็จงาน" เปิดช่องกรอกวิธีแก้ไขก่อนส่ง (ตรวจด้วย `resolutionSchema`); หน้า detail (`getTicket` ได้ `null` → `notFound()` หน้า "ไม่พบใบแจ้งซ่อมนี้") แสดงเลขใบ หัวข้อ สถานะ ความเร่งด่วน หมวด อุปกรณ์ สถานที่ รายละเอียด ผู้แจ้ง ช่าง วันที่แจ้ง/อัปเดต วิธีแก้ไขและวันที่แก้ไขเสร็จ รูป (signed URL กดเปิดขนาดเต็ม) ประวัติพร้อมชื่อผู้ทำและรายละเอียด (เหตุผลส่งต่อ, วิธีแก้ไข) และความคิดเห็น
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS (เพิ่มเคส: กด "เสร็จงาน" โดยไม่กรอกวิธีแก้ไข → เห็น "กรุณากรอกวิธีแก้ไข" และไม่เรียก `transitionTicket`)
+- [x] **Step 5: Commit** `git commit -m "feat(web): ticket detail, status actions and staff dashboard"`
 
 ---
 
 ### Task 7.5: เว็บ — หน้า admin (ผู้ใช้, แผนก, หมวด, อุปกรณ์)
 
 **Files:**
-- Create: `supabase/functions/admin-users/{index.ts, handler.ts}`, `packages/api/src/admin.ts`, `apps/web/app/admin/{users,lists,equipment}/page.tsx`
+- Create: `supabase/functions/admin-users/{index.ts, handler.ts}`, `packages/api/src/admin.ts`, `apps/web/app/(app)/admin/{users,lists,equipment}/page.tsx`
 - Modify: `apps/web/middleware.ts` (ผู้ที่ไม่ใช่ admin เข้า `/admin/*` → redirect `/tickets`)
 - Test: `supabase/functions/admin-users/handler.test.ts`
 
@@ -421,7 +423,7 @@ test('deactivating a user also bans them in Auth', /* … */);
 ### Task 7.6: เว็บ — หน้าสรุปรายงานของ admin
 
 **Files:**
-- Create: `supabase/migrations/0005_reports.sql`, `apps/web/app/admin/reports/page.tsx`, `packages/api/src/reports.ts`
+- Create: `supabase/migrations/0005_reports.sql`, `apps/web/app/(app)/admin/reports/page.tsx`, `packages/api/src/reports.ts`
 - Test: `supabase/tests/reports.sql`
 
 **Interfaces:**
@@ -558,10 +560,10 @@ test('draft text survives a failed createTicket (network error) and can be resub
 - Test: `apps/mobile/app/tickets/detail.test.tsx`, `apps/mobile/lib/push.test.ts`
 
 **Interfaces:**
-- Consumes: `getTicket`, `transitionTicket`, `addComment`, `nextStatuses`, `VersionConflictError`
+- Consumes: `getTicket`, `transitionTicket`, `addComment`, `ticketActions`, `VersionConflictError`
 - Produces:
   - `registerPushToken(db: Db, userId: string): Promise<'registered' | 'denied' | 'unsupported'>` — ขอสิทธิ์แจ้งเตือน, อ่าน Expo push token, บันทึกลง `profiles.expo_push_token`
-  - หน้ารายละเอียดที่ใช้กฎเดียวกับเว็บ (ปุ่มจาก `nextStatuses`, ข้อความชนเวอร์ชันเหมือน Task 7); แตะการแจ้งเตือนแล้วเปิดใบที่เกี่ยวข้อง (`data.ticketId`)
+  - หน้ารายละเอียดที่ใช้กฎเดียวกับเว็บ (ปุ่มจาก `ticketActions`, ข้อความชนเวอร์ชันเหมือน Task 7); แตะการแจ้งเตือนแล้วเปิดใบที่เกี่ยวข้อง (`data.ticketId`)
 
 - [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
 

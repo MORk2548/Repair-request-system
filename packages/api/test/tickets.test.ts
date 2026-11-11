@@ -5,13 +5,14 @@ import {
   ReasonRequiredError,
   ResolutionRequiredError,
   VersionConflictError,
+  addComment,
   createTicket,
   getTicket,
   listTickets,
   reassignTicket,
   transitionTicket,
 } from '../src/index';
-import { newCategory, newUser, ticketInput, type TestUser } from './helpers';
+import { newCategory, newUser, service, ticketInput, type TestUser } from './helpers';
 
 let reporter: TestUser, otherReporter: TestUser, tech: TestUser, otherTech: TestUser, admin: TestUser;
 let categoryId: number;
@@ -119,4 +120,37 @@ test('listTickets filters by status', async () => {
   const { items, nextCursor } = await listTickets(owner.db, { status: 'cancelled' });
   expect(items.map((t) => t.id)).toEqual([a.id]);
   expect(nextCursor).toBeNull();
+});
+
+test('listTickets filters by assignee', async () => {
+  const mine = await createTicket(reporter.db, ticketInput(categoryId));
+  const theirs = await createTicket(reporter.db, ticketInput(categoryId));
+  await transitionTicket(admin.db, { ticketId: mine.id, to: 'assigned', expectedVersion: 1, assigneeId: tech.id });
+  await transitionTicket(admin.db, { ticketId: theirs.id, to: 'assigned', expectedVersion: 1, assigneeId: otherTech.id });
+  const ids = (await listTickets(admin.db, { assigneeId: tech.id, limit: 100 })).items.map((t) => t.id);
+  expect(ids).toContain(mine.id);
+  expect(ids).not.toContain(theirs.id);
+});
+
+test('getTicket returns the category, equipment and the names of everyone on the ticket', async () => {
+  const assetTag = `T7-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: eq, error } = await service.from('equipment').insert({ asset_tag: assetTag, name: 'แอร์ห้อง 7' }).select('id').single();
+  if (error) throw error;
+  const { data: cat } = await service.from('categories').select('name').eq('id', categoryId).single();
+  const { id: ticketId } = await createTicket(reporter.db, ticketInput(categoryId, { equipmentId: eq.id }));
+  await transitionTicket(admin.db, { ticketId, to: 'assigned', expectedVersion: 1, assigneeId: tech.id });
+  await addComment(tech.db, ticketId, 'กำลังไป');
+
+  const detail = await getTicket(reporter.db, ticketId);
+  expect(detail).toMatchObject({ categoryName: cat!.name, equipment: { assetTag, name: 'แอร์ห้อง 7' } });
+  expect(detail?.people).toEqual({
+    [reporter.id]: expect.stringMatching(/^reporter-/),
+    [tech.id]: expect.stringMatching(/^technician-/),
+    [admin.id]: expect.stringMatching(/^admin-/),
+  });
+  expect((await getTicket(reporter.db, (await createTicket(reporter.db, ticketInput(categoryId))).id))?.equipment).toBeNull();
+});
+
+test('getTicket returns null for an id that is not a uuid', async () => {
+  expect(await getTicket(reporter.db, 'not-a-uuid')).toBeNull();
 });

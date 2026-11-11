@@ -47,10 +47,11 @@ function decodeCursor(s: string): Cursor {
 
 export async function listTickets(
   db: Db,
-  { status, limit = 20, cursor }: { status?: TicketStatus; limit?: number; cursor?: string },
+  { status, assigneeId, limit = 20, cursor }: { status?: TicketStatus; assigneeId?: string; limit?: number; cursor?: string },
 ): Promise<{ items: Ticket[]; nextCursor: string | null }> {
   let query = db.from('tickets').select().order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1);
   if (status) query = query.eq('status', status);
+  if (assigneeId) query = query.eq('assignee_id', assigneeId);
   if (cursor) {
     const c = decodeCursor(cursor);
     const at = quote(c.createdAt);
@@ -66,7 +67,7 @@ export async function listTickets(
 export async function getTicket(db: Db, id: string): Promise<TicketDetail | null> {
   const { data, error } = await db
     .from('tickets')
-    .select('*, ticket_attachments(id, storage_path, created_at), ticket_comments(*), ticket_events(*)')
+    .select('*, categories(name), equipment(asset_tag, name), ticket_attachments(id, storage_path, created_at), ticket_comments(*), ticket_events(*)')
     .eq('id', id)
     .order('created_at', { referencedTable: 'ticket_attachments' })
     .order('id', { referencedTable: 'ticket_attachments' })
@@ -75,10 +76,12 @@ export async function getTicket(db: Db, id: string): Promise<TicketDetail | null
     .order('created_at', { referencedTable: 'ticket_events' })
     .order('id', { referencedTable: 'ticket_events' })
     .maybeSingle();
+  // 22P02: the id is not a uuid, so no ticket has it
+  if (error?.code === '22P02') return null;
   if (error) throwDbError(error);
   if (!data) return null;
 
-  const { ticket_attachments: attachments, ticket_comments: comments, ticket_events: events, ...row } = data;
+  const { categories: category, equipment, ticket_attachments: attachments, ticket_comments: comments, ticket_events: events, ...row } = data;
   let urls: string[] = [];
   if (attachments.length > 0) {
     const signed = await db.storage.from('ticket-photos').createSignedUrls(attachments.map((a) => a.storage_path), SIGNED_URL_SECONDS);
@@ -88,8 +91,18 @@ export async function getTicket(db: Db, id: string): Promise<TicketDetail | null
       return s.signedUrl;
     });
   }
+  const personIds = [row.reporter_id, row.assignee_id, ...comments.map((c) => c.author_id), ...events.map((e) => e.actor_id)];
+  const people = await db
+    .from('ticket_people')
+    .select()
+    .in('id', [...new Set(personIds.filter((p) => p !== null))]);
+  if (people.error) throwDbError(people.error);
   return {
     ...toTicket(row),
+    // null when RLS hides an inactive category or retired equipment from a non-admin
+    categoryName: category?.name ?? null,
+    equipment: equipment && { assetTag: equipment.asset_tag, name: equipment.name },
+    people: Object.fromEntries(people.data.map((p) => [p.id!, p.display_name!])),
     photos: attachments.map((a, i) => ({ id: a.id, url: urls[i]! })),
     comments: comments.map(toComment),
     events: events.map(toTicketEvent),
