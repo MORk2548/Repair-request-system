@@ -23,6 +23,12 @@ export class PhotoInvalidError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  name = 'ForbiddenError';
+}
+export class InvalidRangeError extends Error {
+  name = 'InvalidRangeError';
+}
 export class DuplicateAssetTagError extends Error {
   name = 'DuplicateAssetTagError';
 }
@@ -46,6 +52,8 @@ const DB_ERRORS = {
   resolution_required: ResolutionRequiredError,
   reason_required: ReasonRequiredError,
   photo_limit: PhotoLimitError,
+  forbidden: ForbiddenError,
+  invalid_range: InvalidRangeError,
 } as const;
 
 export function throwDbError(error: { message: string }): never {

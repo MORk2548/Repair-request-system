@@ -425,21 +425,22 @@ test('deactivating a user also bans them in Auth', /* … */);
 ### Task 7.6: เว็บ — หน้าสรุปรายงานของ admin
 
 **Files:**
-- Create: `supabase/migrations/0006_reports.sql`, `apps/web/app/(app)/admin/reports/page.tsx`, `packages/api/src/reports.ts`
+- Create: `supabase/migrations/0006_reports.sql`, `apps/web/app/(app)/admin/reports/page.tsx`, `packages/api/src/reports.ts`, `packages/core/src/dates.ts`
+- Modify: `packages/api/src/errors.ts` (`forbidden`, `invalid_range`), `apps/web/app/(app)/layout.tsx` (ลิงก์ "รายงาน")
 - Test: `supabase/tests/reports.sql`
 
 **Interfaces:**
 - Consumes: `tickets`, `categories`, `profiles` (Task 3)
 - Produces:
-  - `ticket_summary(p_from date, p_to date) returns jsonb` (security definer; ผู้เรียกที่ไม่ใช่ admin active → exception `forbidden`): นับใบที่ `created_at` อยู่ในช่วง (ตามวันเวลา `Asia/Bangkok`, รวมทั้งสองวัน) แยกตามสถานะ หมวด และช่าง และ `avg_resolve_hours` = ค่าเฉลี่ย `resolved_at - created_at` ของใบที่มี `resolved_at`
+  - `ticket_summary(p_from date, p_to date) returns jsonb` (security definer; ผู้เรียกที่ไม่ใช่ admin active → exception `forbidden`, `p_from > p_to` → `invalid_range`): นับใบที่ `created_at` อยู่ในช่วง (ตามวันเวลา `Asia/Bangkok`, รวมทั้งสองวัน) แยกตามสถานะ (ครบทั้ง 6 สถานะแม้เป็น 0) หมวด และช่าง (ใบที่ยังไม่มอบหมายเป็นแถว `assignee_id: null`) และ `avg_resolve_hours` = ค่าเฉลี่ย `resolved_at - created_at` ของใบที่มี `resolved_at`
   - `getTicketSummary(db, { from: string; to: string })` ใน `reports.ts`
-  - `/admin/reports`: เลือกช่วงวันที่ (ค่าเริ่มต้น = เดือนปัจจุบัน) แล้วแสดงตารางตัวเลข ไม่มีกราฟ
+  - `/admin/reports`: เลือกช่วงวันที่ (ค่าเริ่มต้น = เดือนปัจจุบัน) แล้วแสดงตารางตัวเลข ไม่มีกราฟ (ฟอร์ม GET ธรรมดา ช่วงวันที่ไม่ถูกต้องแสดงข้อความภาษาไทยแล้วกลับไปใช้เดือนปัจจุบัน; `bangkokMonthRange` และ `dateRangeSchema` อยู่ใน `packages/core/src/dates.ts`)
 
-- [ ] **Step 1: เขียนเทสต์ pgTAP ที่ล้มเหลว** ใน `reports.sql`: seed 3 ใบในช่วงและ 1 ใบนอกช่วง → นับได้ 3; ใบที่สร้าง `2026-11-30T17:30:00Z` นับเป็นวันที่ 1 ธ.ค.; ใบ `done` 2 ใบใช้เวลา 2 และ 4 ชั่วโมง → `avg_resolve_hours = 3`; reporter เรียก → `throws_ok 'forbidden'`
-- [ ] **Step 2: รัน** `supabase test db` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `ticket_summary`, `getTicketSummary` และหน้า `/admin/reports`**
-- [ ] **Step 4: รันซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat: admin ticket summary report"`
+- [x] **Step 1: เขียนเทสต์ pgTAP ที่ล้มเหลว** ใน `reports.sql`: seed 3 ใบในช่วงและ 1 ใบนอกช่วง → นับได้ 3; ใบที่สร้าง `2026-11-30T17:30:00Z` นับเป็นวันที่ 1 ธ.ค.; ใบ `done` 2 ใบใช้เวลา 2 และ 4 ชั่วโมง → `avg_resolve_hours = 3`; reporter เรียก → `throws_ok 'forbidden'`
+- [x] **Step 2: รัน** `supabase test db` — คาดว่า FAIL
+- [x] **Step 3: เขียน `ticket_summary`, `getTicketSummary` และหน้า `/admin/reports`**
+- [x] **Step 4: รันซ้ำ** — คาดว่า PASS
+- [x] **Step 5: Commit** `git commit -m "feat: admin ticket summary report"`
 
 ---
 

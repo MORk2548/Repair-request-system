@@ -7,3 +7,4 @@ export * from './photos';
 export * from './comments';
 export * from './lookups';
 export * from './admin';
+export * from './reports';
