@@ -1,19 +1,25 @@
+import { buildEmail, type Email } from '../../../packages/core/src/email.ts';
 import { messageFor, recipientsFor, ticketEventPayloadSchema, type Staff } from '../../../packages/core/src/notify.ts';
 import type { TicketStatus } from '../../../packages/core/src/status.ts';
 
 export type PushMessage = { title: string; body: string; ticketId: string };
 
 export type Deps = {
-  loadTicket(id: string): Promise<{ id: string; ticketNo: string } | null>;
+  loadTicket(id: string): Promise<{ id: string; ticketNo: string; title: string } | null>;
   listStaffIds(): Promise<Staff>;
-  getContact(userId: string): Promise<{ pushToken: string | null } | null>;
+  getContact(userId: string): Promise<{ pushToken: string | null; email: string | null } | null>;
   sendPush(token: string, m: PushMessage): Promise<void>;
+  sendEmail(to: string, mail: Email, idempotencyKey: string): Promise<void>;
+  webBaseUrl: string;
+  emailEnabled: boolean;
 };
 
 // reporterId and assigneeId are the ticket's people when the event happened; the ticket may have moved on since
 export type TicketEvent = { id: string; ticketId: string; actorId: string | null; toStatus: TicketStatus; reporterId: string; assigneeId: string | null };
-export type Counts = { sent: number; failed: number; skipped: number };
-type Outcome = keyof Counts;
+type ChannelCounts = { sent: number; failed: number; skipped: number };
+export type Counts = { push: ChannelCounts; email: ChannelCounts };
+type Outcome = keyof ChannelCounts;
+type Outcomes = { push: Outcome; email: Outcome };
 
 const attempt = (send: () => Promise<void>, what: string): Promise<Outcome> =>
   send().then(
@@ -24,23 +30,31 @@ const attempt = (send: () => Promise<void>, what: string): Promise<Outcome> =>
     },
   );
 
-// one outcome per channel, so Task 9 adds email beside push here
-async function notifyRecipient(userId: string, m: PushMessage, deps: Deps): Promise<Outcome[]> {
+async function notifyRecipient(eventId: string, userId: string, push: PushMessage, mail: Email, deps: Deps): Promise<Outcomes> {
   const contact = await deps.getContact(userId);
   const token = contact?.pushToken;
-  return Promise.all([token ? attempt(() => deps.sendPush(token, m), `push to ${userId}`) : 'skipped']);
+  const to = deps.emailEnabled ? contact?.email : null;
+  const [p, e] = await Promise.all([
+    token ? attempt(() => deps.sendPush(token, push), `push to ${userId}`) : 'skipped',
+    // the key is stable per event and recipient, so a re-delivered event cannot email twice
+    to ? attempt(() => deps.sendEmail(to, mail, `${eventId}:${userId}`), `email to ${userId}`) : 'skipped',
+  ] as const);
+  return { push: p, email: e };
 }
 
 export async function processEvent(e: TicketEvent, deps: Deps): Promise<Counts> {
-  const counts: Counts = { sent: 0, failed: 0, skipped: 0 };
+  const counts: Counts = { push: { sent: 0, failed: 0, skipped: 0 }, email: { sent: 0, failed: 0, skipped: 0 } };
   const ticket = await deps.loadTicket(e.ticketId);
   if (!ticket) return counts;
   const staff = await deps.listStaffIds();
-  const m = { ...messageFor(e.toStatus, ticket.ticketNo), ticketId: ticket.id };
-  const results = await Promise.allSettled(recipientsFor(e, e, staff).map((id) => notifyRecipient(id, m, deps)));
+  const push = { ...messageFor(e.toStatus, ticket.ticketNo), ticketId: ticket.id };
+  const mail = buildEmail(e.toStatus, ticket, deps.webBaseUrl);
+  const results = await Promise.allSettled(recipientsFor(e, e, staff).map((id) => notifyRecipient(e.id, id, push, mail, deps)));
   for (const r of results) {
     if (r.status === 'rejected') console.error('notify recipient', r.reason);
-    for (const o of r.status === 'fulfilled' ? r.value : ['failed' as const]) counts[o]++;
+    const o: Outcomes = r.status === 'fulfilled' ? r.value : { push: 'failed', email: 'failed' };
+    counts.push[o.push]++;
+    counts.email[o.email]++;
   }
   return counts;
 }
