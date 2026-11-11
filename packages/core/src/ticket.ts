@@ -32,6 +32,8 @@ export type CreateTicketInput = z.output<typeof createTicketSchema>;
 
 export const resolutionSchema = text('วิธีแก้ไข', 1, 1000);
 
+export const commentSchema = text('ความคิดเห็น', 1, 1000);
+
 export type Ticket = {
   id: string;
   ticketNo: string;
