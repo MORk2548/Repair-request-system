@@ -497,19 +497,20 @@ test('a missing or wrong webhook secret gets 401 and processes nothing', /* … 
 
 **Files:**
 - Create: `packages/core/src/email.ts`, `supabase/functions/notify-ticket-event/email.ts`
-- Modify: `packages/core/src/index.ts`, `supabase/functions/notify-ticket-event/process.ts` (ส่งอีเมลควบคู่ push), `supabase/functions/notify-ticket-event/index.ts` (ต่อ deps จริง)
-- Test: `packages/core/test/email.test.ts`, `supabase/functions/notify-ticket-event/process.test.ts` (เพิ่มเคส)
+- Modify: `packages/core/src/index.ts`, `supabase/functions/notify-ticket-event/process.ts` (ส่งอีเมลควบคู่ push), `supabase/functions/notify-ticket-event/index.ts` (ต่อ deps จริง), `supabase/functions/.env.example`
+- Test: `packages/core/test/email.test.ts`, `supabase/functions/notify-ticket-event/email.test.ts`, `supabase/functions/notify-ticket-event/process.test.ts` (เพิ่มเคส)
 
 **Interfaces:**
 - Consumes: `recipientsFor`, `messageFor`, `processEvent`, `Deps` (Task 8); `TicketStatus`
 - Produces:
   - `escapeHtml(s: string): string` — แทน `& < > " '` ด้วย entity
-  - `buildEmail(toStatus: TicketStatus, t: { id: string; ticketNo: string; title: string }, baseUrl: string): { subject: string; text: string; html: string }` — `subject` = `[แจ้งซ่อม] ` + `messageFor(toStatus, t.ticketNo).title`; `text`/`html` มีข้อความจาก `messageFor(...).body`, หัวข้อใบ และลิงก์ `{baseUrl}/tickets/{id}` (ตัด `/` ท้าย `baseUrl` ก่อนต่อ); `text` ใช้หัวข้อดิบ, `html` ใช้หัวข้อที่ผ่าน `escapeHtml`
-  - `Deps` ขยาย: `getContact` คืน `{ pushToken: string | null; email: string | null }` และเพิ่ม `sendEmail(to: string, mail: { subject: string; text: string; html: string }, idempotencyKey: string): Promise<void>`
-  - `sendEmail` จริง (`email.ts`): `POST ${RESEND_API_URL ?? 'https://api.resend.com/emails'}` พร้อม header `Authorization: Bearer ${RESEND_API_KEY}` และ `Idempotency-Key`, body `{ from: EMAIL_FROM, to: [to], subject, text, html }`; สถานะตอบกลับที่ไม่ใช่ 2xx → throw
+  - `buildEmail(toStatus: TicketStatus, t: { id: string; ticketNo: string; title: string }, baseUrl: string): { subject: string; text: string; html: string }` — `subject` = `[แจ้งซ่อม] ` + `messageFor(toStatus, t.ticketNo).title`; `text`/`html` มีข้อความจาก `messageFor(...).body`, หัวข้อใบ และลิงก์ `{baseUrl}/tickets/{id}` (ตัด `/` ท้าย `baseUrl` ทุกตัวก่อนต่อ, `id` ผ่าน `encodeURIComponent`) พร้อมเลขใบและป้ายสถานะภาษาไทย (`STATUS_LABELS`) และบรรทัดท้าย `อีเมลนี้ส่งอัตโนมัติ กรุณาอย่าตอบกลับ`; `text` ใช้หัวข้อดิบ, `html` (`lang="th"` ไม่มีตาราง) ใส่ทุกค่ารวมลิงก์ผ่าน `escapeHtml`
+  - `Deps` ขยาย: `loadTicket` คืน `{ id; ticketNo; title } | null`, `getContact` คืน `{ pushToken: string | null; email: string | null } | null` และเพิ่ม `sendEmail(to: string, mail: { subject: string; text: string; html: string }, idempotencyKey: string): Promise<void>`, `webBaseUrl: string`, `emailEnabled: boolean` (ปิดอยู่ `sendEmail` ไม่ถูกเรียกและนับเป็น skipped)
+  - `processEvent` คืนจำนวนแยกช่องทาง `{ push: { sent, failed, skipped }, email: { sent, failed, skipped } }` และ `handle` ตอบ 200 ด้วยค่านี้
+  - `sendEmail` จริง (`email.ts` `sendViaResend(fetch, { apiUrl, apiKey, from }, to, mail, key)` รับ `fetch` และค่า env เป็นอาร์กิวเมนต์ เพื่อให้ Vitest ทดสอบได้): `POST ${RESEND_API_URL ?? 'https://api.resend.com/emails'}` พร้อม header `Authorization: Bearer ${RESEND_API_KEY}` และ `Idempotency-Key`, body `{ from: EMAIL_FROM, to: [to], subject, text, html }`; สถานะตอบกลับที่ไม่ใช่ 2xx → throw พร้อมสถานะและข้อความตอบกลับ; `index.ts` เปิดอีเมลเมื่อมีทั้ง `RESEND_API_KEY` และ `EMAIL_FROM` เท่านั้น (เครื่อง dev ปล่อยว่าง เพราะที่อยู่ `@helpdesk.test` ของ seed ไม่มีจริง), `WEB_BASE_URL` ค่าเริ่มต้น `http://localhost:3000`
   - คีย์กันส่งซ้ำ: `${event.id}:${userId}`; `getContact` จริงอ่านอีเมลจาก `supabase.auth.admin.getUserById`
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
 
 ```ts
 // email.test.ts
@@ -530,12 +531,15 @@ test('sends one email per recipient that has an address, with key `${event.id}:$
 test('recipient without email still gets push; recipient without token still gets email', /* … */);
 test('email failure does not block push and push failure does not block email', /* ใช้ Promise.allSettled */);
 test('retrying the same event reuses the same idempotency keys', /* … */);
+// เพิ่ม: escapeHtml ครบห้าตัวและไม่ escape `&` ซ้ำ; `"` ในหัวข้อหลุดออกจาก attribute ไม่ได้; ลิงก์ใน text มีครั้งเดียว; `/` ท้ายหลายตัวถูกตัด; มีป้ายสถานะ;
+// emailEnabled false ไม่ส่งอีเมลและนับ skipped; อีเมลมีหัวข้อที่ escape และลิงก์; ผู้รับไม่มีโปรไฟล์/ปิดบัญชีไม่ได้ทั้งสองช่องทาง;
+// supabase/functions/notify-ticket-event/email.test.ts: URL override, header, รูป body, 422 → throw
 ```
 
-- [ ] **Step 2: รัน** `pnpm exec vitest run email process` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `escapeHtml`, `buildEmail`, ขยาย `processEvent` และ `sendEmail`** — ส่ง push กับอีเมลของผู้รับแต่ละคนด้วย `Promise.allSettled` และ log ความล้มเหลวโดยไม่ throw
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat: email notifications via Resend"`
+- [x] **Step 2: รัน** `corepack pnpm exec vitest run` และ `corepack pnpm --filter @repair/core test email` — คาดว่า FAIL
+- [x] **Step 3: เขียน `escapeHtml`, `buildEmail`, ขยาย `processEvent` และ `sendEmail`** — ส่ง push กับอีเมลของผู้รับแต่ละคนด้วย `Promise.allSettled` และ log ความล้มเหลวโดยไม่ throw
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS; แล้วลองบน local stack: ตั้ง `RESEND_API_URL` ให้ชี้ HTTP listener บนเครื่อง, สร้างใบที่หัวข้อมี `<b>`, `&`, `"` และให้ช่างรับงาน แล้วดูว่าอีเมลถึงคนที่ถูกต้อง หัวข้อถูก escape และลิงก์ถูก; เอา `RESEND_API_KEY` ออกแล้วต้องไม่มีอีเมลออก
+- [x] **Step 5: Commit** `git commit -m "feat: email notifications via Resend"`
 
 ---
 

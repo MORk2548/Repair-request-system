@@ -1,10 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { sendViaResend } from './email.ts';
 import { handle, type Deps } from './process.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const pushUrl = Deno.env.get('EXPO_PUSH_URL') ?? 'https://exp.host/--/api/v2/push/send';
+const resendKey = Deno.env.get('RESEND_API_KEY');
+const emailFrom = Deno.env.get('EMAIL_FROM');
+const resend = { apiUrl: Deno.env.get('RESEND_API_URL'), apiKey: resendKey ?? '', from: emailFrom ?? '' };
+const emailEnabled = Boolean(resendKey && emailFrom);
 
 const must = <T>(r: { data: T; error: unknown }): T => {
   if (r.error) throw r.error;
@@ -13,8 +18,8 @@ const must = <T>(r: { data: T; error: unknown }): T => {
 
 const deps: Deps = {
   async loadTicket(id) {
-    const row = must(await admin.from('tickets').select('id, ticket_no').eq('id', id).maybeSingle());
-    return row && { id: row.id, ticketNo: row.ticket_no };
+    const row = must(await admin.from('tickets').select('id, ticket_no, title').eq('id', id).maybeSingle());
+    return row && { id: row.id, ticketNo: row.ticket_no, title: row.title };
   },
   async listStaffIds() {
     const rows = must(await admin.from('profiles').select('id, role').in('role', ['admin', 'technician']).eq('is_active', true));
@@ -23,7 +28,12 @@ const deps: Deps = {
   },
   async getContact(userId) {
     const row = must(await admin.from('profiles').select('expo_push_token, is_active').eq('id', userId).maybeSingle());
-    return row?.is_active ? { pushToken: row.expo_push_token } : null;
+    if (!row?.is_active) return null;
+    if (!emailEnabled) return { pushToken: row.expo_push_token, email: null };
+    // a failed Auth lookup only loses the email, so the push still goes out
+    const { data, error } = await admin.auth.admin.getUserById(userId);
+    if (error) console.error('email lookup', userId, error.message);
+    return { pushToken: row.expo_push_token, email: data?.user?.email ?? null };
   },
   async sendPush(to, m) {
     const res = await fetch(pushUrl, {
@@ -37,6 +47,9 @@ const deps: Deps = {
     const tickets = [JSON.parse(text || '{}').data].flat();
     if (tickets.some((t) => t?.status === 'error')) throw new Error(`expo push ticket error: ${text}`);
   },
+  sendEmail: (to, mail, key) => sendViaResend(fetch, resend, to, mail, key),
+  webBaseUrl: Deno.env.get('WEB_BASE_URL') ?? 'http://localhost:3000',
+  emailEnabled,
 };
 
 Deno.serve(async (req) => {
