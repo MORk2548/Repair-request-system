@@ -86,7 +86,7 @@ create table public.ticket_attachments (
   ticket_id uuid not null references public.tickets on delete cascade,
   uploader_id uuid not null default auth.uid() references public.profiles,
   file_name text not null,
-  storage_path text not null unique,
+  storage_path text not null unique check (storage_path like ticket_id::text || '/%'),
   created_at timestamptz not null default now()
 );
 create index on public.ticket_attachments (ticket_id);

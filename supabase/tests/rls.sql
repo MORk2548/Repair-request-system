@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(32);
 
 create function pg_temp.act_as(p_user uuid) returns void language plpgsql as $$
 begin
@@ -83,6 +83,10 @@ select throws_ok(
   $$insert into public.ticket_attachments (ticket_id, file_name, storage_path)
     values ('10000000-0000-0000-0000-000000000001', 'p6.jpg', '10000000-0000-0000-0000-000000000001/6.jpg')$$,
   'P0001', 'photo_limit', 'a sixth photo is rejected');
+select throws_ok(
+  $$insert into public.ticket_attachments (ticket_id, file_name, storage_path)
+    values ('10000000-0000-0000-0000-000000000003', 'x.jpg', '10000000-0000-0000-0000-000000000002/x.jpg')$$,
+  '23514', null, 'an attachment cannot point at another ticket''s folder');
 select throws_ok(
   $$insert into public.ticket_comments (ticket_id, body) values ('10000000-0000-0000-0000-000000000002', 'not my ticket')$$,
   '42501', null, 'reporter cannot comment on a ticket they cannot see');
