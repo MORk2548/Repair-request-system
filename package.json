@@ -8,7 +8,7 @@
   "scripts": {
     "test": "corepack pnpm -r test && vitest run",
     "typecheck": "corepack pnpm -r typecheck && tsc --noEmit -p .",
-    "db:start": "supabase start",
+    "db:start": "supabase start && docker start supabase_edge_runtime_repair-request-system",
     "db:reset": "supabase db reset",
     "gen:types": "supabase gen types typescript --local > packages/api/src/database.types.ts",
     "web:dev": "corepack pnpm --filter web dev",

@@ -447,22 +447,26 @@ test('deactivating a user also bans them in Auth', /* … */);
 ### Task 8: แจ้งเตือน (Edge Function + กฎผู้รับ)
 
 **Files:**
-- Create: `packages/core/src/notify.ts`, `supabase/functions/notify-ticket-event/{index.ts, process.ts}`
-- Modify: `packages/core/src/index.ts`
-- Test: `packages/core/test/notify.test.ts`, `supabase/functions/notify-ticket-event/process.test.ts` (Vitest ที่ root ครอบ `supabase/functions/**/*.test.ts`)
+- Create: `packages/core/src/notify.ts`, `supabase/functions/notify-ticket-event/{index.ts, process.ts, deno.json}`, `supabase/migrations/0007_notify.sql`
+- Modify: `packages/core/src/index.ts`, `supabase/config.toml` (`verify_jwt = false` ของฟังก์ชันนี้), `supabase/seed.sql` (Vault secrets ของเครื่อง dev), `supabase/functions/.env.example`, `tsconfig.json`
+- Test: `packages/core/test/notify.test.ts`, `supabase/functions/notify-ticket-event/process.test.ts` (Vitest ที่ root ครอบ `supabase/functions/**/*.test.ts`), `supabase/tests/notify.sql`
 
 **Interfaces:**
 - Consumes: ตาราง `ticket_events`, `profiles.expo_push_token`
 - Produces:
-  - `recipientsFor(e: { toStatus: TicketStatus; actorId: string }, t: { reporterId: string; assigneeId: string | null }, staff: { adminIds: string[]; technicianIds: string[] }): string[]` — ไม่มีรายการซ้ำ และไม่รวม `actorId` (ส่งต่องานใช้ event `to_status = 'assigned'` จึงแจ้งช่างคนใหม่ + ผู้แจ้งด้วยกติกาเดียวกัน)
-  - `messageFor(toStatus: TicketStatus, ticketNo: string): { title: string; body: string }` (ภาษาไทย)
-    - `type Deps = { loadTicket(id: string): Promise<Ticket>; listStaffIds(): Promise<{ adminIds: string[]; technicianIds: string[] }>; getContact(userId: string): Promise<{ pushToken: string | null }>; sendPush(token: string, m: { title: string; body: string; ticketId: string }): Promise<void> }`
-  - `processEvent(e: { id: string; ticketId: string; actorId: string; toStatus: TicketStatus }, deps: Deps): Promise<void>` — ไม่ import อะไรเฉพาะ Deno เพื่อให้ Vitest รันได้
-  - `index.ts` รับ Database Webhook เมื่อ insert `ticket_events` แล้วเรียก `processEvent` พร้อม deps จริง (ส่ง Expo push ผ่าน `https://exp.host/--/api/v2/push/send`)
+  - `recipientsFor(e: { toStatus: TicketStatus; actorId: string | null }, t: { reporterId: string; assigneeId: string | null }, staff: { adminIds: string[]; technicianIds: string[] }): string[]` — ไม่มีรายการซ้ำ และไม่รวม `actorId` (ส่งต่องานใช้ event `to_status = 'assigned'` จึงแจ้งช่างคนใหม่ + ผู้แจ้งด้วยกติกาเดียวกัน); กติกาเป็นตาราง `RECIPIENTS` หนึ่งแถวต่อสถานะ
+  - `messageFor(toStatus: TicketStatus, ticketNo: string): { title: string; body: string }` (ภาษาไทย, ตาราง `MESSAGES`)
+  - `ticketEventPayloadSchema` (zod) — body ที่ trigger ส่งมา `{ id, ticket_id, actor_id, action, to_status }`
+  - `type Deps = { loadTicket(id: string): Promise<{ id; ticketNo } | null>; listStaffIds(): Promise<{ adminIds: string[]; technicianIds: string[] }>; getContact(userId: string): Promise<{ pushToken: string | null } | null>; sendPush(token: string, m: { title: string; body: string; ticketId: string }): Promise<void> }` — `listStaffIds` เฉพาะบัญชี active, `getContact` คืน `null` เมื่อไม่มีโปรไฟล์หรือปิดบัญชี
+  - `processEvent(e: { id: string; ticketId: string; actorId: string | null; toStatus: TicketStatus; reporterId: string; assigneeId: string | null } (ผู้แจ้งและช่างของใบ ณ ตอนเกิดเหตุการณ์ ซึ่ง trigger อ่านใน transaction เดียวกันแล้วส่งมาใน payload; ผู้รับคิดจากค่านี้ ไม่อ่านจากใบภายหลัง), deps: Deps): Promise<{ sent: number; failed: number; skipped: number }>` และ `handle({ secret, body }, expectedSecret, deps)` ใน `process.ts` — ไม่ import อะไรเฉพาะ Deno เพื่อให้ Vitest รันได้
+  - `index.ts` (Deno) ต่อ deps จริงด้วย service-role key และส่ง Expo push ไป `EXPO_PUSH_URL` (ค่าเริ่มต้น `https://exp.host/--/api/v2/push/send`); ตอบ 200 เสมอเมื่อประมวลผลจบ
+  - trigger `notify_ticket_event` (after insert on `ticket_events` ที่มี `to_status`) ส่ง event ด้วย `pg_net` ไป URL ใน Vault secret `notify_function_url` พร้อม header `x-webhook-secret` = Vault secret `notify_webhook_secret`; ไม่มี secret ก็ไม่ส่ง และ error ใด ๆ เป็นแค่ warning เพื่อไม่ให้การเปลี่ยนใบ rollback
 
-กติกาผู้รับ (เฉพาะบัญชีที่ `is_active`): `new` → ผู้ดูแลและช่างทุกคน (คิวรอรับงาน); `assigned` → ช่างที่ได้รับมอบหมาย + ผู้แจ้ง; `in_progress`, `done` → ผู้แจ้ง (+ ผู้ดูแลเมื่อ `done`); `closed`, `cancelled` → ช่างที่เกี่ยวข้อง + ผู้ดูแล
+กติกาผู้รับ (เฉพาะบัญชีที่ `is_active`): `new` → ผู้ดูแลและช่างทุกคน (คิวรอรับงาน); `assigned` → ช่างที่ได้รับมอบหมาย + ผู้แจ้ง; `in_progress` → ผู้แจ้ง + ช่างที่ได้รับมอบหมาย (เพื่อให้การเปิดงานซ้ำ `done → in_progress` ของผู้แจ้งถึงช่าง; ผู้ทำรายการถูกตัดออกเสมอ); `done` → ผู้แจ้ง + ผู้ดูแล; `closed`, `cancelled` → ช่างที่เกี่ยวข้อง + ผู้ดูแล
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
+ฟังก์ชันปิด `verify_jwt` เพราะผู้เรียกคือฐานข้อมูล ไม่ใช่ผู้ใช้ จึงตรวจ header `x-webhook-secret` เทียบกับ env `NOTIFY_WEBHOOK_SECRET` แทน (ไม่ตรง/ไม่มี → 401, body ผิด → 400, event ที่ไม่มีสถานะ → 200 โดยไม่ทำอะไร)
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
 
 ```ts
 test('new ticket notifies all admins and technicians except the actor', () =>
@@ -470,17 +474,22 @@ test('new ticket notifies all admins and technicians except the actor', () =>
 test('assigned notifies technician and reporter', () =>
   expect(recipientsFor({ toStatus: 'assigned', actorId: 'a1' }, { reporterId: 'r1', assigneeId: 't1' }, { adminIds: ['a1'], technicianIds: ['t1', 't2'] }).sort()).toEqual(['r1', 't1']));
 test('technician taking a ticket themself notifies only the reporter', /* actor t1 = assignee → ['r1'] */);
+test('reassign by the old technician notifies the new assignee and the reporter', /* … */);
+test('a reporter reopening a done ticket notifies the assignee', /* … */);
 test('no duplicates when reporter is also admin', /* … */);
 test('actor never notified of own action', /* … */);
+test('every status has a Thai message that names the ticket', /* … */);
 // process.test.ts
 test('processEvent pushes to every recipient that has a token and skips those without', /* … */);
 test('a push failure for one recipient does not stop the others', /* … */);
+test('a missing or wrong webhook secret gets 401 and processes nothing', /* … */);
+// supabase/tests/notify.sql: ไม่มี secret ก็สร้างใบได้และไม่มีคิว; มี secret แล้วสร้างใบ/transition เพิ่มคิวใน net.http_request_queue ทีละแถว; URL เสียไม่ทำให้สร้างใบล้ม; client เรียกฟังก์ชัน trigger ไม่ได้
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter @repair/core test notify` และ `pnpm exec vitest run process` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `recipientsFor`, `messageFor`, `processEvent` และ `index.ts`** (`index.ts` ใช้ service-role key จาก secret ของ Supabase เท่านั้น; ถ้า push ของผู้รับคนใดล้มเหลวให้ log แล้วไปคนถัดไป ไม่ throw เพื่อไม่ให้ webhook ลองซ้ำจนส่งซ้ำ)
-- [ ] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat: ticket event notifications"`
+- [x] **Step 2: รัน** `corepack pnpm --filter @repair/core test notify`, `corepack pnpm exec vitest run process` และ `corepack pnpm exec supabase test db` — คาดว่า FAIL
+- [x] **Step 3: เขียน `recipientsFor`, `messageFor`, `processEvent`, `index.ts` และ `0007_notify.sql`** (`index.ts` ใช้ service-role key จาก secret ของ Supabase เท่านั้น; ถ้า push ของผู้รับคนใดล้มเหลวให้ log แล้วไปคนถัดไป ไม่ throw)
+- [x] **Step 4: รันเทสต์ซ้ำ** — คาดว่า PASS; แล้วลองบน local stack: ตั้ง `EXPO_PUSH_URL` ให้ชี้ HTTP listener บนเครื่อง, สร้างใบและให้ช่างรับงาน แล้วดูว่า push ถึงคนที่ถูกต้องและผู้ทำรายการไม่ได้รับ
+- [x] **Step 5: Commit** `git commit -m "feat: ticket event notifications"`
 
 ---
 
@@ -600,7 +609,7 @@ test('VersionConflictError shows reload message', /* … */);
 - [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local (ใช้บัญชี dev จาก `supabase/seed.sql`) — คาดว่า FAIL
 - [ ] **Step 3: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
 
-  จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`) และ Database Webhook; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
+  จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`, `NOTIFY_WEBHOOK_SECRET` เป็นค่าสุ่มยาว) ด้วย `supabase secrets set`; ต่อ trigger `notify_ticket_event` ใน project จริงด้วย Vault secrets สองตัวผ่าน SQL editor: `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');` และ `select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');` (seed.sql ไม่ถูกโหลดใน production; ถ้าไม่ตั้ง trigger จะไม่ส่งอะไรเลย); deploy ฟังก์ชันพร้อม `verify_jwt = false` ตาม `config.toml`; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
 - [ ] **Step 4: รัน** `pnpm exec playwright test` — คาดว่า PASS; แล้วลองบนมือถือจริงหนึ่งเครื่อง: สร้างใบ → admin มอบหมาย → ได้ push และอีเมลภายใน 1 นาที (ตรวจว่าอีเมลไม่เข้าสแปม)
 - [ ] **Step 5: Commit** `git commit -m "chore: e2e smoke test and deployment docs"`
 
