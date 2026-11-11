@@ -7,6 +7,7 @@ const ADMIN_LINKS = [
   { href: '/admin/users', label: 'ผู้ใช้' },
   { href: '/admin/lists', label: 'แผนกและหมวด' },
   { href: '/admin/equipment', label: 'อุปกรณ์' },
+  { href: '/admin/reports', label: 'รายงาน' },
 ];
 
 export default async function SignedInLayout({ children }: { children: ReactNode }) {

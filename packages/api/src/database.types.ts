@@ -376,6 +376,9 @@ isOneToOne: false
 "sync_equipment_status":
 { Args: { "p_equipment_id": number }; Returns: undefined
                            },
+"ticket_summary":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "transition_ticket":
 { Args: { "p_assignee"?: string,"p_expected_version": number,"p_resolution"?: string,"p_ticket_id": string,"p_to": Database["public"]['Enums']["ticket_status"] }; Returns: {
               "assignee_id": string | null,
