@@ -66,3 +66,9 @@ from (values
   ('SW-0001', 'สวิตช์เครือข่ายชั้น 2', 'CS-2960X', 'ฝ่ายเทคโนโลยีสารสนเทศ', 'อาคาร A ชั้น 2 ห้อง Server')
 ) as e (asset_tag, name, serial_no, department, install_location)
 join public.departments d on d.name = e.department;
+
+-- Wires notify_ticket_event() (0007_notify.sql) to the local Edge Function. kong is the API gateway's name
+-- on the Docker network the database runs in. The secret must equal NOTIFY_WEBHOOK_SECRET in
+-- supabase/functions/.env.
+select vault.create_secret('http://kong:8000/functions/v1/notify-ticket-event', 'notify_function_url');
+select vault.create_secret('local-dev-notify-secret', 'notify_webhook_secret');
