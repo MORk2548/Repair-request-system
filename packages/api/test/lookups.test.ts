@@ -1,5 +1,5 @@
 import { beforeAll, expect, test } from 'vitest';
-import { getProfile, listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
+import { getProfile, savePushToken, listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
 import { newCategory, newUser, service, type TestUser } from './helpers';
 
 let reporter: TestUser, tech: TestUser, admin: TestUser;
@@ -80,4 +80,17 @@ test('listTechnicians lists technicians for staff and nothing for a reporter', a
 test('getProfile returns the display name and role of a user the caller may see', async () => {
   expect(await getProfile(tech.db, tech.id)).toEqual({ id: tech.id, displayName: expect.stringMatching(/^technician-/), role: 'technician' });
   expect(await getProfile(reporter.db, tech.id)).toBeNull();
+});
+
+test('savePushToken writes and clears only the caller own token', async () => {
+  const token = async (id: string) => (await service.from('profiles').select('expo_push_token').eq('id', id).single()).data?.expo_push_token;
+
+  await savePushToken(reporter.db, reporter.id, 'ExponentPushToken[mine]');
+  expect(await token(reporter.id)).toBe('ExponentPushToken[mine]');
+
+  await savePushToken(reporter.db, tech.id, 'ExponentPushToken[stolen]');
+  expect(await token(tech.id)).toBeNull();
+
+  await savePushToken(reporter.db, reporter.id, null);
+  expect(await token(reporter.id)).toBeNull();
 });
