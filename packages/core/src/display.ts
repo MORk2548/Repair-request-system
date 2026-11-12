@@ -40,17 +40,11 @@ export const EVENT_LABELS: Readonly<Record<TicketEventAction, string>> = {
 export const eventLabel = (e: { action: TicketEventAction; toStatus: TicketStatus | null }): string =>
   e.action === 'status' && e.toStatus ? STATUS_LABELS[e.toStatus] : EVENT_LABELS[e.action];
 
-const thaiDateTime = new Intl.DateTimeFormat('th-TH-u-ca-buddhist-nu-latn', {
-  timeZone: 'Asia/Bangkok',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
+const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+const two = (n: number) => String(n).padStart(2, '0');
 
+// computed by hand, not with Intl: Bangkok is UTC+7 all year, and a phone's JS engine may lack the Buddhist calendar
 export function formatThaiDateTime(iso: string): string {
-  const p = Object.fromEntries(thaiDateTime.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
-  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+  const d = new Date(new Date(iso).getTime() + BANGKOK_OFFSET_MS);
+  return `${two(d.getUTCDate())}/${two(d.getUTCMonth() + 1)}/${d.getUTCFullYear() + 543} ${two(d.getUTCHours())}:${two(d.getUTCMinutes())}`;
 }
