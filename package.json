@@ -12,7 +12,8 @@
     "db:reset": "supabase db reset",
     "gen:types": "supabase gen types typescript --local > packages/api/src/database.types.ts",
     "web:dev": "corepack pnpm --filter web dev",
-    "test:db": "supabase test db && corepack pnpm --filter @repair/core test:db && corepack pnpm --filter @repair/api test:db"
+    "test:db": "supabase test db && corepack pnpm --filter @repair/core test:db && corepack pnpm --filter @repair/api test:db",
+    "mobile:dev": "corepack pnpm --filter mobile dev"
   },
   "devDependencies": {
     "supabase": "3.1.0",

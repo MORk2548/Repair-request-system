@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "แจ้งซ่อม",
+    "slug": "repair-request",
+    "scheme": "repair",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "แอปใช้รูปในเครื่องเพื่อแนบกับใบแจ้งซ่อม",
+          "cameraPermission": "แอปใช้กล้องเพื่อถ่ายรูปแนบกับใบแจ้งซ่อม"
+        }
+      ]
+    ]
+  }
+}
