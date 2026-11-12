@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Button, Field, styles } from '../../components/ui';
 import { db } from '../../lib/supabase';
 
@@ -24,7 +25,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={styles.safe}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={[styles.screen, { justifyContent: 'center' }]} keyboardShouldPersistTaps="handled">
         <Text accessibilityRole="header" style={{ fontSize: 24, fontWeight: '700' }}>
           เข้าสู่ระบบ
@@ -35,5 +37,6 @@ export default function LoginScreen() {
         <Button label="เข้าสู่ระบบ" onPress={() => void submit()} disabled={sending} />
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
