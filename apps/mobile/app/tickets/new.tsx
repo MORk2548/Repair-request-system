@@ -90,7 +90,8 @@ export default function NewTicketScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+      {/* on iOS the native header is translucent and floats over the screen; this makes the scroll view start below it */}
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
         <View pointerEvents={locked ? 'none' : 'auto'} style={{ gap: 12, opacity: locked ? 0.6 : 1 }}>
           <Field label="หัวข้อ" value={fields.title} onChangeText={set('title')} error={errors.title} editable={!locked} />
           <Field label="รายละเอียด" value={fields.description} onChangeText={set('description')} error={errors.description} multiline numberOfLines={4} style={{ minHeight: 100, textAlignVertical: 'top' }} editable={!locked} />
