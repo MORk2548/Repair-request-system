@@ -86,6 +86,8 @@ export function Choices<T extends string | number>({
 }
 
 export const styles = StyleSheet.create({
+  // Android draws edge to edge, so a screen without a navigator header or tab bar must keep clear of the status and navigation bars itself
+  safe: { flex: 1, backgroundColor: colors.bg },
   screen: { flexGrow: 1, padding: 16, gap: 12, backgroundColor: colors.bg },
   field: { gap: 6 },
   label: { fontSize: 16, fontWeight: '600', color: colors.text },

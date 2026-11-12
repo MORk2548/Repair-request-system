@@ -2,7 +2,8 @@ import { listCategories, listEquipment, type Category, type Equipment } from '@r
 import { MAX_PHOTOS, PRIORITIES, PRIORITY_LABELS, createTicketSchema, type Priority } from '@repair/core';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Button, Choices, Field, colors, styles } from '../../components/ui';
 import { pickPhotos, preparePhoto } from '../../lib/photos';
 import { db } from '../../lib/supabase';
@@ -87,7 +88,8 @@ export default function NewTicketScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
         <View pointerEvents={locked ? 'none' : 'auto'} style={{ gap: 12, opacity: locked ? 0.6 : 1 }}>
           <Field label="หัวข้อ" value={fields.title} onChangeText={set('title')} error={errors.title} editable={!locked} />
@@ -161,5 +163,6 @@ export default function NewTicketScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
