@@ -27,6 +27,18 @@ test('attached photos come back from getTicket with working signed URLs', async 
   expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
 });
 
+test('a JPEG passed as an ArrayBuffer (the mobile app) is stored byte for byte as image/jpeg', async () => {
+  const jpeg = Uint8Array.from(
+    atob('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='),
+    (c) => c.charCodeAt(0),
+  );
+  const ticketId = await newTicket();
+  await attachPhoto(reporter.db, ticketId, { data: jpeg.buffer, mime: 'image/jpeg', size: jpeg.byteLength, name: 'camera.jpg' });
+  const res = await fetch((await getTicket(reporter.db, ticketId))!.photos[0]!.url);
+  expect(res.headers.get('content-type')).toBe('image/jpeg');
+  expect(new Uint8Array(await res.arrayBuffer())).toEqual(jpeg);
+});
+
 test('6th photo throws PhotoLimitError without uploading', async () => {
   const ticketId = await newTicket();
   for (let i = 0; i < 5; i++) await attachPhoto(reporter.db, ticketId, png());

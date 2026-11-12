@@ -87,8 +87,9 @@ supabase/functions/admin-users/{index.ts, handler.ts, handler.test.ts}
 apps/web/app/login/page.tsx, apps/web/app/(app)/{layout.tsx, tickets, tickets/new, tickets/[id]}  # (app) = route group ของหน้าที่ต้องล็อกอิน
 apps/web/app/(app)/admin/{users, lists, equipment, reports}/page.tsx
 apps/web/components/{TicketForm.tsx, TicketTable.tsx, StatusActions.tsx, CommentList.tsx}
-apps/mobile/app/{(auth)/login.tsx, (tabs)/tickets.tsx, tickets/new.tsx, tickets/[id].tsx}
-apps/mobile/lib/push.ts
+apps/mobile/app/{_layout.tsx, index.tsx, (auth)/login.tsx, (tabs)/_layout.tsx, (tabs)/tickets.tsx, tickets/new.tsx, tickets/[id].tsx}
+apps/mobile/lib/{supabase.ts, encryptedStorage.ts, env.ts, crypto.ts, photos.ts, useTicketSubmit.ts, push.ts}
+apps/mobile/test/*.test.tsx                                      # ไม่อยู่ใน app/ เพราะทุกไฟล์ใน app/ เป็น route
 e2e/smoke.spec.ts
 ```
 
@@ -546,26 +547,30 @@ test('retrying the same event reuses the same idempotency keys', /* … */);
 ### Task 10: แอป — ล็อกอิน, แจ้งซ่อมพร้อมถ่ายรูป, รายการใบ
 
 **Files:**
-- Create: `apps/mobile/app/(auth)/login.tsx`, `apps/mobile/app/(tabs)/tickets.tsx`, `apps/mobile/app/tickets/new.tsx`, `apps/mobile/lib/supabase.ts` (เก็บ session ด้วย `expo-secure-store`)
-- Test: `apps/mobile/app/tickets/new.test.tsx`
+- Create: `apps/mobile/index.ts` (โหลด `lib/crypto.ts` ก่อน `expo-router/entry`), `apps/mobile/app/{_layout.tsx, index.tsx, (auth)/login.tsx, (tabs)/_layout.tsx, (tabs)/tickets.tsx, tickets/new.tsx}`, `apps/mobile/lib/{supabase.ts, encryptedStorage.ts, env.ts, crypto.ts, photos.ts, useTicketSubmit.ts}`, `apps/mobile/components/ui.tsx`, `apps/mobile/.env.example`; root script `mobile:dev`
+- Session: `expo-secure-store` เก็บค่าได้ราว 2 KB แต่ session ของ Supabase ใหญ่กว่า จึงเก็บกุญแจ AES-256 สุ่มไว้ใน SecureStore และเก็บ session ที่เข้ารหัส AES-GCM แล้วไว้ใน AsyncStorage (แบบเดียวกับคู่มือ Expo ของ Supabase แต่ใช้ AES ของ `expo-crypto` ไม่เพิ่มไลบรารี)
+- Hermes ไม่มี `crypto.randomUUID` จึงเติมจาก `expo-crypto` ที่ entry ครั้งเดียว (`lib/crypto.ts`) ไม่แก้จุดเรียกใน `@repair/api`
+- Test: `apps/mobile/test/{new, login, tickets, layout, crypto}.test.tsx` (ไม่วางใน `app/` เพราะ Expo Router นับทุกไฟล์ใน `app/` เป็น route) และ `packages/api/test/photos.test.ts` เพิ่มกรณี JPEG ที่ส่งเป็น `ArrayBuffer`
 
 **Interfaces:**
-- Consumes: `createTicket`, `attachPhoto`, `listTickets`, `createTicketSchema`
-- Produces: หน้าจอ `/login`, `/(tabs)/tickets` (ดึงเพิ่มเมื่อเลื่อนสุดด้วย `nextCursor`), `/tickets/new` (เลือกรูปจากกล้อง/คลัง สูงสุด 5 รูป)
+- Consumes: `createTicket`, `attachPhoto`, `listTickets`, `listCategories`, `listEquipment`, `createTicketSchema`
+- Produces: หน้าจอ `/login`, `/(tabs)/tickets` (ดึงลงเพื่อโหลดใหม่, ดึงเพิ่มเมื่อเลื่อนสุดด้วย `nextCursor`), `/tickets/new` (เลือกรูปจากกล้อง/คลัง สูงสุด 5 รูป ย่อเป็น JPEG ด้านยาว 1600 px คุณภาพ 0.7 ก่อนอัปโหลด); `useTicketSubmit` (สร้างใบ → อัปโหลดรูป → ลองใหม่เฉพาะรูปที่ล้ม) ให้ Task 11 ใช้ต่อได้โดยไม่ต้องแก้
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว** ด้วย jest-expo + RNTL (mock `@repair/api`, `expo-image-picker`):
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** ด้วย jest-expo + RNTL (mock `@repair/api`, `expo-image-picker`, `expo-image-manipulator`, `lib/supabase`, `expo-router`):
 
 ```tsx
 test('shows Thai validation errors and blocks submit when form is empty', /* … */);
 test('selecting a 6th photo is refused with "แนบรูปได้ไม่เกิน 5 รูป"', /* … */);
 test('photo failure keeps ticket, shows retry; retry does not call createTicket again', /* … */);
 test('draft text survives a failed createTicket (network error) and can be resubmitted with same clientRequestId', /* … */);
+// เพิ่ม: เลือกอุปกรณ์แล้วเติมสถานที่, ไม่ได้สิทธิ์กล้องแล้วแสดงข้อความไทย, ล็อกอินผิดแสดง "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+// รายการโหลดหน้าถัดไปเมื่อเลื่อนสุดและแสดง "ยังไม่มีใบแจ้งซ่อม", ไม่มีตัวแปร env แสดงข้อความไทย, ล็อกอิน/ออกแล้วสลับหน้าจอ, shim ของ crypto
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter mobile test` — คาดว่า FAIL
-- [ ] **Step 3: เขียนหน้าจอทั้งสาม** — ใช้ตรรกะเดียวกับ `TicketForm` (หมวดจาก `listCategories`, เลือกอุปกรณ์ได้) (สร้าง `clientRequestId` ครั้งเดียวต่อฟอร์ม, อัปโหลดรูปหลังสร้างใบ); ย่อรูปก่อนอัปโหลดด้วย `expo-image-manipulator` ให้ไม่เกิน 5 MB
-- [ ] **Step 4: รัน** `pnpm --filter mobile test` — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(mobile): login, create ticket with photos, ticket list"`
+- [x] **Step 2: รัน** `corepack pnpm --filter mobile test` — คาดว่า FAIL
+- [x] **Step 3: เขียนหน้าจอทั้งสาม** — ใช้ตรรกะเดียวกับ `TicketForm` (หมวดจาก `listCategories`, เลือกอุปกรณ์ได้) (สร้าง `clientRequestId` ครั้งเดียวต่อฟอร์ม, อัปโหลดรูปหลังสร้างใบ); ย่อรูปก่อนอัปโหลดด้วย `expo-image-manipulator` ให้ไม่เกิน 5 MB
+- [x] **Step 4: รัน** `corepack pnpm --filter mobile test` — คาดว่า PASS; แล้ว `expo export --platform android` และ `--platform ios` ต้อง bundle ได้ และ `corepack pnpm mobile:dev` ต้องเสิร์ฟ manifest ที่ IP Wi-Fi
+- [x] **Step 5: Commit** `git commit -m "feat(mobile): login, create ticket with photos, ticket list"`
 
 ---
 
@@ -573,7 +578,7 @@ test('draft text survives a failed createTicket (network error) and can be resub
 
 **Files:**
 - Create: `apps/mobile/app/tickets/[id].tsx`, `apps/mobile/lib/push.ts`
-- Test: `apps/mobile/app/tickets/detail.test.tsx`, `apps/mobile/lib/push.test.ts`
+- Test: `apps/mobile/test/detail.test.tsx`, `apps/mobile/test/push.test.ts`
 
 **Interfaces:**
 - Consumes: `getTicket`, `transitionTicket`, `addComment`, `ticketActions`, `VersionConflictError`
