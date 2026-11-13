@@ -1,5 +1,5 @@
 import { beforeAll, expect, test } from 'vitest';
-import { getProfile, savePushToken, listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
+import { getAccount, getProfile, savePushToken, listCategories, listDepartments, listEquipment, listTechnicians } from '../src/index';
 import { newCategory, newUser, service, type TestUser } from './helpers';
 
 let reporter: TestUser, tech: TestUser, admin: TestUser;
@@ -80,6 +80,21 @@ test('listTechnicians lists technicians for staff and nothing for a reporter', a
 test('getProfile returns the display name and role of a user the caller may see', async () => {
   expect(await getProfile(tech.db, tech.id)).toEqual({ id: tech.id, displayName: expect.stringMatching(/^technician-/), role: 'technician' });
   expect(await getProfile(reporter.db, tech.id)).toBeNull();
+});
+
+test('getAccount returns the caller own department and join date', async () => {
+  const { data: dept, error } = await service.from('departments').insert({ name: `acct-${tag}` }).select('id').single();
+  if (error) throw error;
+  const { error: linkError } = await service.from('profiles').update({ department_id: dept.id }).eq('id', reporter.id);
+  if (linkError) throw linkError;
+  expect(await getAccount(reporter.db, reporter.id)).toEqual({
+    id: reporter.id,
+    displayName: expect.stringMatching(/^reporter-/),
+    role: 'reporter',
+    departmentName: `acct-${tag}`,
+    createdAt: expect.any(String),
+  });
+  expect(await getAccount(tech.db, tech.id)).toMatchObject({ departmentName: null });
 });
 
 test('savePushToken writes and clears only the caller own token', async () => {

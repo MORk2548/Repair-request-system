@@ -6,7 +6,7 @@ export default async function SettingsPage() {
   return (
     <>
       <header className="page-head">
-        <div className="eyebrow">บัญชีของฉัน</div>
+        <div className="eyebrow">การแสดงผล</div>
         <h1>ตั้งค่า</h1>
         <p>เลือกโหมดการแสดงผลและขนาดตัวอักษรที่อ่านสบาย</p>
       </header>

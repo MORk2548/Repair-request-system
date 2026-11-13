@@ -2,11 +2,13 @@ import type { Db } from './client';
 import { throwDbError } from './errors';
 import { quote } from './postgrest';
 import {
+  toAccount,
   toCategory,
   toDepartment,
   toEquipment,
   toProfile,
   toTechnician,
+  type Account,
   type Category,
   type Department,
   type Equipment,
@@ -54,6 +56,16 @@ export async function getProfile(db: Db, id: string): Promise<Profile | null> {
   const { data, error } = await db.from('profiles').select('id, display_name, role').eq('id', id).maybeSingle();
   if (error) throwDbError(error);
   return data && toProfile(data);
+}
+
+export async function getAccount(db: Db, id: string): Promise<Account | null> {
+  const { data, error } = await db
+    .from('profiles')
+    .select('id, display_name, role, created_at, departments(name)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throwDbError(error);
+  return data && toAccount(data);
 }
 
 // RLS lets a user update only their own row, so another user's id changes nothing

@@ -18,8 +18,9 @@ export default async function SignedInLayout({ children }: { children: ReactNode
   const links: NavLink[] = [
     { href: '/tickets/new', label: 'แจ้งซ่อม', icon: 'new' },
     { href: '/tickets', label: role === 'reporter' ? 'ใบแจ้งซ่อมของฉัน' : 'ใบแจ้งซ่อม', icon: 'tickets' },
-    { href: '/settings', label: 'ตั้งค่า', icon: 'settings' },
     ...(role === 'admin' ? ADMIN_LINKS : []),
+    { href: '/account', label: 'บัญชีของฉัน', icon: 'account' },
+    { href: '/settings', label: 'ตั้งค่า', icon: 'settings' },
   ];
 
   return (
