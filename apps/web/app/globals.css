@@ -341,7 +341,7 @@ td .stack { min-width: 12rem; }
 
 /* Guest pages (login) */
 
-.guest { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
+.guest { min-height: 100dvh; margin: 0 auto; display: grid; place-items: center; padding: 1rem; }
 .guest .panel { width: min(24rem, 100%); }
 .guest h1 { margin-bottom: 1rem; }
 .guest form .button { width: 100%; }
