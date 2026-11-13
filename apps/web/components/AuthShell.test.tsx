@@ -13,9 +13,4 @@ describe('AuthShell', () => {
     expect(main.textContent).toContain('ระบบแจ้งซ่อม');
     expect(main.textContent).toContain('เนื้อหา');
   });
-
-  it('hides the decorative aurora from assistive technology', () => {
-    const { container } = render(<AuthShell>x</AuthShell>);
-    expect(container.querySelector('.aurora')?.getAttribute('aria-hidden')).toBe('true');
-  });
 });

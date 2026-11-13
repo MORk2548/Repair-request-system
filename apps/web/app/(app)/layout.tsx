@@ -18,6 +18,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
       <header className="topbar">
         <div className="row">
           <Link href="/tickets" className="brand">
+            <span className="brand-mark" aria-hidden="true" />
             ระบบแจ้งซ่อม
           </Link>
           {role === 'admin' && (

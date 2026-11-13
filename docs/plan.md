@@ -682,6 +682,22 @@ test('VersionConflictError shows reload message', /* … */);
 
 ---
 
+### Task 12.6: ทุกหน้าของเว็บใช้ธีม AURORA
+
+ขยาย Task 12.5 จากสองหน้าไปทุกหน้าของเว็บ (รายการใบ, แจ้งซ่อม, รายละเอียดใบ, หน้า admin, รายงาน) แอปมือถือคงเดิม token สีย้ายไป `:root` (พร้อม `color-scheme: dark` ให้ `<select>` และตัวเลือกวันที่เป็นสีมืด), แสงออโรราย้ายไปอยู่ใน root layout หน้าเดียวใช้ร่วมกันทุกหน้า, การ์ด ตาราง แถบหัว และกล่องข้อความเป็นกระจก, ป้ายสถานะแต่ละสีอ่านได้บนพื้นมืด (WCAG AA)
+
+**Files:**
+- Create: `apps/web/components/Aurora.tsx`, `apps/web/components/Aurora.test.tsx`
+- Modify: `apps/web/app/layout.tsx`, `apps/web/app/(app)/layout.tsx`, `apps/web/components/AuthShell.tsx`, `apps/web/components/AuthShell.test.tsx`, `apps/web/app/globals.css`
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** `Aurora.test.tsx`: ชั้นแสงมี `aria-hidden="true"`; ย้ายเทสต์เดิมเรื่องนี้ออกจาก `AuthShell.test.tsx`
+- [x] **Step 2: รัน** `corepack pnpm --filter web test Aurora` — คาดว่า FAIL
+- [x] **Step 3: เขียน `Aurora`, ใส่ใน root layout, เขียน `globals.css` ใหม่ทั้งไฟล์ด้วยธีมเดียว**
+- [x] **Step 4: รัน** `corepack pnpm --filter web test`, `corepack pnpm typecheck`, `corepack pnpm --filter web build` — คาดว่า PASS; แล้วเปิดหน้า login, รายการใบ, แจ้งซ่อม, รายละเอียดใบ และหน้า admin ดูจริงที่ 375px และ 1280px
+- [x] **Step 5: Commit** `git commit -m "feat(web): aurora theme on every page"`
+
+---
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER
