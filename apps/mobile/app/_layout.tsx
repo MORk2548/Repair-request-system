@@ -2,11 +2,13 @@ import type { Session } from '@supabase/supabase-js';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-import { styles } from '../components/ui';
+import { ActivityIndicator, Text } from 'react-native';
+import { Screen } from '../components/Screen';
+import { useUi } from '../components/ui';
 import { envError } from '../lib/env';
 import { registerPushToken, useNotificationTaps } from '../lib/push';
 import { db } from '../lib/supabase';
+import { ThemeProvider, useTheme } from '../lib/theme';
 import { ProfileProvider } from '../lib/useProfile';
 
 function useSession() {
@@ -25,6 +27,16 @@ function useSession() {
 }
 
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <Root />
+    </ThemeProvider>
+  );
+}
+
+function Root() {
+  const { theme } = useTheme();
+  const { styles, colors } = useUi();
   const session = useSession();
   const userId = session?.user.id ?? null;
 
@@ -36,26 +48,33 @@ export default function RootLayout() {
 
   if (envError) {
     return (
-      <View style={[styles.screen, { justifyContent: 'center' }]}>
+      <Screen style={[styles.screen, { justifyContent: 'center' }]}>
         <Text accessibilityRole="alert" style={[styles.error, { fontSize: 18 }]}>
           {envError}
         </Text>
-      </View>
+      </Screen>
     );
   }
   if (session === undefined) {
     return (
-      <View style={[styles.screen, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" accessibilityLabel="กำลังโหลด" />
-      </View>
+      <Screen style={[styles.screen, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel="กำลังโหลด" />
+      </Screen>
     );
   }
 
   // a guard that turns false sends the user to the first screen they may open, so signing in or out needs no redirect code
   return (
     <ProfileProvider userId={userId}>
-      <StatusBar style="dark" />
-      <Stack>
+      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: theme.bg },
+        }}
+      >
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

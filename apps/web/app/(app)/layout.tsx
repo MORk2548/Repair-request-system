@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SignOutButton } from '../../components/SignOutButton';
+import { ThemePicker } from '../../components/ThemePicker';
 import { getSession } from '../../lib/session';
+import { getThemeId } from '../../lib/theme';
 
 const ADMIN_LINKS = [
   { href: '/admin/users', label: 'ผู้ใช้' },
@@ -11,13 +13,14 @@ const ADMIN_LINKS = [
 ];
 
 export default async function SignedInLayout({ children }: { children: ReactNode }) {
-  const { user, profile, role } = await getSession();
+  const [{ user, profile, role }, theme] = await Promise.all([getSession(), getThemeId()]);
 
   return (
     <>
       <header className="topbar">
         <div className="row">
           <Link href="/tickets" className="brand">
+            <span className="brand-mark" aria-hidden="true" />
             ระบบแจ้งซ่อม
           </Link>
           {role === 'admin' && (
@@ -31,6 +34,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
           )}
         </div>
         <div className="row">
+          <ThemePicker current={theme} />
           <span>{profile?.displayName ?? user.email}</span>
           <SignOutButton />
         </div>

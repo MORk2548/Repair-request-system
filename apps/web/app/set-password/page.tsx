@@ -1,9 +1,10 @@
 import { AuthShell } from '../../components/AuthShell';
 import { SetPasswordForm } from '../../components/SetPasswordForm';
+import { getThemeId } from '../../lib/theme';
 
-export default function SetPasswordPage() {
+export default async function SetPasswordPage() {
   return (
-    <AuthShell>
+    <AuthShell theme={await getThemeId()}>
       <SetPasswordForm />
     </AuthShell>
   );

@@ -5,7 +5,7 @@ import { AuthShell } from './AuthShell';
 describe('AuthShell', () => {
   it('shows the brand and its children inside main', () => {
     render(
-      <AuthShell>
+      <AuthShell theme="aurora">
         <p>เนื้อหา</p>
       </AuthShell>,
     );
@@ -14,8 +14,8 @@ describe('AuthShell', () => {
     expect(main.textContent).toContain('เนื้อหา');
   });
 
-  it('hides the decorative aurora from assistive technology', () => {
-    const { container } = render(<AuthShell>x</AuthShell>);
-    expect(container.querySelector('.aurora')?.getAttribute('aria-hidden')).toBe('true');
+  it('lets a signed-out user pick a theme', () => {
+    render(<AuthShell theme="sunset">x</AuthShell>);
+    expect((screen.getByRole('radio', { name: 'สนธยา' }) as HTMLInputElement).checked).toBe(true);
   });
 });

@@ -6,11 +6,13 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Pressable, Scrol
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentList } from '../../components/CommentList';
 import { StatusActions } from '../../components/StatusActions';
-import { Alert, Button, colors, styles } from '../../components/ui';
+import { Screen } from '../../components/Screen';
+import { Alert, Button, statusColor, useUi } from '../../components/ui';
 import { db } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 
 function Detail({ label, children, urgent }: { label: string; children: ReactNode; urgent?: boolean }) {
+  const { colors, styles } = useUi();
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
       <Text style={[styles.hint, { width: 110 }]}>{label}</Text>
@@ -20,6 +22,7 @@ function Detail({ label, children, urgent }: { label: string; children: ReactNod
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const { styles } = useUi();
   return (
     <View style={{ gap: 6 }}>
       <Text accessibilityRole="header" style={styles.label}>
@@ -31,6 +34,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function TicketScreen() {
+  const { colors, styles } = useUi();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { profile } = useProfile();
@@ -84,14 +88,14 @@ export default function TicketScreen() {
   const name = (personId: string | null) => (personId ? (ticket.people[personId] ?? 'ไม่ทราบชื่อ') : '-');
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+    <Screen edges={['bottom', 'left', 'right']}>
       <Stack.Screen options={{ title: ticket.ticketNo }} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* on iOS the native header is translucent and floats over the screen; this makes the scroll view start below it */}
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.screen, { gap: 16 }]} keyboardShouldPersistTaps="handled">
           <View style={{ gap: 4 }}>
             <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{ticket.title}</Text>
-            <Text style={{ fontSize: 16, color: colors.primary, fontWeight: '600' }}>{STATUS_LABELS[ticket.status]}</Text>
+            <Text style={{ fontSize: 16, color: statusColor(colors, ticket.status), fontWeight: '600' }}>{STATUS_LABELS[ticket.status]}</Text>
           </View>
 
           {failed ? <Alert>โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณาลองอีกครั้ง</Alert> : null}
@@ -106,7 +110,7 @@ export default function TicketScreen() {
             onLeave={() => router.dismissTo('/tickets')}
           />
 
-          <View style={{ gap: 6, padding: 12, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+          <View style={styles.card}>
             <Detail label="ความเร่งด่วน" urgent={ticket.priority === 'urgent'}>
               {PRIORITY_LABELS[ticket.priority]}
             </Detail>
@@ -171,6 +175,6 @@ export default function TicketScreen() {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 }
