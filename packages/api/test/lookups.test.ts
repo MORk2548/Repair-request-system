@@ -94,3 +94,14 @@ test('savePushToken writes and clears only the caller own token', async () => {
   await savePushToken(reporter.db, reporter.id, null);
   expect(await token(reporter.id)).toBeNull();
 });
+
+test('savePushToken takes a phone over from the previous user, so their notifications stop reaching it', async () => {
+  const token = async (id: string) => (await service.from('profiles').select('expo_push_token').eq('id', id).single()).data?.expo_push_token;
+  const phone = `ExponentPushToken[${crypto.randomUUID()}]`;
+
+  await savePushToken(reporter.db, reporter.id, phone);
+  await savePushToken(tech.db, tech.id, phone);
+
+  expect(await token(tech.id)).toBe(phone);
+  expect(await token(reporter.id)).toBeNull();
+});

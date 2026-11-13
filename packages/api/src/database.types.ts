@@ -335,6 +335,9 @@ isOneToOne: false
 "can_see_ticket_row":
 { Args: { "p_assignee_id": string,"p_reporter_id": string,"p_status": Database["public"]['Enums']["ticket_status"] }; Returns: boolean
                            },
+"claim_push_token":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"]
                            },

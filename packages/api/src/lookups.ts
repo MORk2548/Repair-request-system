@@ -57,8 +57,11 @@ export async function getProfile(db: Db, id: string): Promise<Profile | null> {
 }
 
 // RLS lets a user update only their own row, so another user's id changes nothing
+// a token belongs to one phone; claiming it takes it away from whoever signed in there before
 export async function savePushToken(db: Db, userId: string, token: string | null): Promise<void> {
-  const { error } = await db.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+  const { error } = token
+    ? await db.rpc('claim_push_token', { p_token: token })
+    : await db.from('profiles').update({ expo_push_token: null }).eq('id', userId);
   if (error) throwDbError(error);
 }
 
