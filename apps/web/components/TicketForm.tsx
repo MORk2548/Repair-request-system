@@ -135,46 +135,44 @@ export function TicketForm({ categories }: { categories: Category[] }) {
   const uploadFailed = ticket !== null && photos.length > 0 && !sending;
 
   return (
-    <form className="card stack" onSubmit={submit} noValidate>
-      <fieldset className="stack" disabled={ticket !== null}>
-        <div className="field">
+    <form className="panel" onSubmit={submit} noValidate>
+      <fieldset className="form-grid" disabled={ticket !== null}>
+        <div className="field full">
           <label htmlFor="title">หัวข้อ</label>
           <input id="title" value={fields.title} onChange={set('title')} {...describe('title')} />
-          {errors.title && <p id="title-error" className="error">{errors.title}</p>}
+          {errors.title && <p id="title-error" className="field-error">{errors.title}</p>}
         </div>
 
-        <div className="field">
+        <div className="field full">
           <label htmlFor="description">รายละเอียด</label>
           <textarea id="description" rows={4} value={fields.description} onChange={set('description')} {...describe('description')} />
-          {errors.description && <p id="description-error" className="error">{errors.description}</p>}
-        </div>
-
-        <div className="row">
-          <div className="field">
-            <label htmlFor="categoryId">หมวดหมู่</label>
-            <select id="categoryId" value={fields.categoryId} onChange={set('categoryId')} {...describe('categoryId')}>
-              <option value="">เลือกหมวดหมู่</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {errors.categoryId && <p id="categoryId-error" className="error">{errors.categoryId}</p>}
-          </div>
-          <div className="field">
-            <label htmlFor="priority">ความเร่งด่วน</label>
-            <select id="priority" value={fields.priority} onChange={set('priority')}>
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
-                </option>
-              ))}
-            </select>
-          </div>
+          {errors.description && <p id="description-error" className="field-error">{errors.description}</p>}
         </div>
 
         <div className="field">
+          <label htmlFor="categoryId">หมวดหมู่</label>
+          <select id="categoryId" value={fields.categoryId} onChange={set('categoryId')} {...describe('categoryId')}>
+            <option value="">เลือกหมวดหมู่</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {errors.categoryId && <p id="categoryId-error" className="field-error">{errors.categoryId}</p>}
+        </div>
+        <div className="field">
+          <label htmlFor="priority">ความเร่งด่วน</label>
+          <select id="priority" value={fields.priority} onChange={set('priority')}>
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                {PRIORITY_LABELS[p]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field full">
           <label htmlFor="equipment">อุปกรณ์ (ไม่บังคับ)</label>
           <input
             id="equipment"
@@ -199,13 +197,13 @@ export function TicketForm({ categories }: { categories: Category[] }) {
           )}
         </div>
 
-        <div className="field">
+        <div className="field full">
           <label htmlFor="location">สถานที่</label>
           <input id="location" value={fields.location} onChange={set('location')} {...describe('location')} />
-          {errors.location && <p id="location-error" className="error">{errors.location}</p>}
+          {errors.location && <p id="location-error" className="field-error">{errors.location}</p>}
         </div>
 
-        <div className="field">
+        <div className="field full">
           <label htmlFor="photos">รูป</label>
           <input
             id="photos"
@@ -215,16 +213,16 @@ export function TicketForm({ categories }: { categories: Category[] }) {
             onChange={addPhotos}
             aria-describedby="photos-hint"
           />
-          <p id="photos-hint" className="hint">
+          <p id="photos-hint" className="field-hint">
             ไม่เกิน {MAX_PHOTOS} รูป รูปละไม่เกิน 5 MB (JPEG, PNG, WebP)
           </p>
-          {photoError && <p className="error" role="alert">{photoError}</p>}
+          {photoError && <p className="field-error" role="alert">{photoError}</p>}
           {photos.length > 0 && (
             <ul className="photos">
               {photos.map((f, i) => (
                 <li key={`${f.name}-${i}`}>
                   <span>{f.name}</span>
-                  <button type="button" aria-label={`ลบรูป ${f.name}`} onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}>
+                  <button type="button" className="button button-secondary" aria-label={`ลบรูป ${f.name}`} onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}>
                     ลบ
                   </button>
                 </li>
@@ -234,22 +232,24 @@ export function TicketForm({ categories }: { categories: Category[] }) {
         </div>
       </fieldset>
 
-      {submitError && <p className="error" role="alert">ส่งใบแจ้งซ่อมไม่สำเร็จ กรุณาลองอีกครั้ง</p>}
+      {submitError && <p className="alert alert-error" role="alert">ส่งใบแจ้งซ่อมไม่สำเร็จ กรุณาลองอีกครั้ง</p>}
 
       {uploadFailed ? (
-        <div className="notice stack" role="alert">
+        <div className="alert alert-warning" role="alert">
           <p>สร้างใบแจ้งซ่อมแล้ว แต่อัปโหลดรูปไม่สำเร็จ</p>
-          <div className="row">
-            <button type="button" className="primary" onClick={() => void run(() => uploadPhotos(ticket))}>
+          <div className="actions">
+            <button type="button" className="button" onClick={() => void run(() => uploadPhotos(ticket))}>
               ลองอัปโหลดรูปอีกครั้ง
             </button>
             <Link href="/tickets">ไปที่รายการใบแจ้งซ่อม</Link>
           </div>
         </div>
       ) : (
-        <button type="submit" className="primary" disabled={sending || ticket !== null} aria-busy={sending}>
-          ส่งใบแจ้งซ่อม
-        </button>
+        <div className="form-footer">
+          <button type="submit" className="button" disabled={sending || ticket !== null} aria-busy={sending}>
+            ส่งใบแจ้งซ่อม
+          </button>
+        </div>
       )}
     </form>
   );

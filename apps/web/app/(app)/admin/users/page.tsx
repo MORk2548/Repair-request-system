@@ -9,7 +9,11 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="stack">
-      <h1>ผู้ใช้</h1>
+      <header className="page-head">
+        <div className="eyebrow">ผู้ดูแลระบบ</div>
+        <h1>ผู้ใช้</h1>
+        <p>เชิญผู้ใช้ใหม่ทางอีเมล แก้บทบาทและแผนก หรือปิดใช้งานบัญชี</p>
+      </header>
       <InviteUserForm departments={departments.filter((d) => d.isActive)} />
       <div className="table-wrap">
         <table>

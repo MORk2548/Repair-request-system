@@ -5,9 +5,13 @@ import { createServerDb } from '../../../../lib/supabase-server';
 export default async function NewTicketPage() {
   const categories = await listCategories(await createServerDb());
   return (
-    <div className="stack">
-      <h1>แจ้งซ่อม</h1>
+    <>
+      <header className="page-head">
+        <div className="eyebrow">ระบบแจ้งซ่อม</div>
+        <h1>แจ้งซ่อม</h1>
+        <p>บอกอาการและสถานที่ให้ช่างหาเจอ แนบรูปได้ถ้ามี</p>
+      </header>
       <TicketForm categories={categories} />
-    </div>
+    </>
   );
 }

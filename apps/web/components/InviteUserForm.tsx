@@ -30,7 +30,7 @@ export function InviteUserForm({ departments }: { departments: Department[] }) {
   }
 
   return (
-    <form className="card stack" onSubmit={submit} noValidate aria-label="เชิญผู้ใช้">
+    <form className="panel" onSubmit={submit} noValidate aria-label="เชิญผู้ใช้">
       <h2>เชิญผู้ใช้</h2>
       <div className="row">
         <Field label="อีเมล" error={errors.email}>
@@ -66,9 +66,9 @@ export function InviteUserForm({ departments }: { departments: Department[] }) {
         </Field>
       </div>
       <ActionError error={error} />
-      {sentTo && <p role="status">ส่งคำเชิญไปที่ {sentTo} แล้ว</p>}
-      <div className="row">
-        <button type="submit" className="primary" disabled={pending} aria-busy={pending}>
+      {sentTo && <p role="status" className="alert alert-success">ส่งคำเชิญไปที่ {sentTo} แล้ว</p>}
+      <div className="actions">
+        <button type="submit" className="button" disabled={pending} aria-busy={pending}>
           ส่งคำเชิญ
         </button>
       </div>

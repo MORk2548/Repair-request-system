@@ -36,10 +36,10 @@ export function LookupRow({ kind, item }: { kind: LookupKind; item: Item & { id:
       <td>{item.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}</td>
       <td>
         <div className="row">
-          <button type="button" onClick={() => setEditing(true)}>
+          <button type="button" className="button button-secondary" onClick={() => setEditing(true)}>
             แก้ไข
           </button>
-          <button type="button" disabled={pending} aria-busy={pending} onClick={() => void run((db) => save(db, kind, { ...item, isActive: !item.isActive }))}>
+          <button type="button" className="button button-secondary" disabled={pending} aria-busy={pending} onClick={() => void run((db) => save(db, kind, { ...item, isActive: !item.isActive }))}>
             {item.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
           </button>
         </div>
@@ -71,7 +71,7 @@ export function LookupForm({ kind, item, onDone }: { kind: LookupKind; item?: It
   }
 
   return (
-    <form className="stack" onSubmit={submit} noValidate aria-label={item ? `แก้ไข ${item.name}` : kind === 'category' ? 'เพิ่มหมวด' : 'เพิ่มแผนก'}>
+    <form onSubmit={submit} noValidate aria-label={item ? `แก้ไข ${item.name}` : kind === 'category' ? 'เพิ่มหมวด' : 'เพิ่มแผนก'}>
       <div className="row">
         <Field label={label} error={errors.name}>
           {(p) => <input {...p} value={name} onChange={(e) => setName(e.target.value)} />}
@@ -83,12 +83,12 @@ export function LookupForm({ kind, item, onDone }: { kind: LookupKind; item?: It
         )}
       </div>
       <ActionError error={error} />
-      <div className="row">
-        <button type="submit" className="primary" disabled={pending} aria-busy={pending}>
+      <div className="actions">
+        <button type="submit" className="button" disabled={pending} aria-busy={pending}>
           {item ? 'บันทึก' : 'เพิ่ม'}
         </button>
         {onDone && (
-          <button type="button" disabled={pending} onClick={onDone}>
+          <button type="button" className="button button-secondary" disabled={pending} onClick={onDone}>
             ยกเลิก
           </button>
         )}

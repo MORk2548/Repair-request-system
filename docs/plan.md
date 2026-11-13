@@ -722,6 +722,23 @@ test('VersionConflictError shows reload message', /* … */);
 
 ---
 
+### Task 12.8: เว็บใช้หน้าตาแบบระบบเดิม (PHP helpdesk) และตั้งค่าโหมดสว่าง/มืดกับขนาดตัวอักษร
+
+ทุกหน้าของเว็บเปลี่ยนจากธีม AURORA เป็นหน้าตาของระบบเดิม (`Repair System/public/assets/app.css`): แถบด้านข้างสีน้ำเงินเข้มพร้อมไอคอน, การ์ด `panel`, หัวหน้า `page-head`, ป้ายสถานะมีจุด, timeline, หน้าเข้าสู่ระบบแบบ `guest` ตัวเลือกธีมสีบนเว็บถูกแทนด้วยหน้า "ตั้งค่า" (โหมดสว่าง/มืด, ขนาดตัวอักษร ปกติ/ใหญ่/ใหญ่มาก) เก็บใน cookie `theme` และ `font_scale` แอปมือถือคงเดิม (ยังใช้ `THEMES` ใน core)
+
+**Files:**
+- Create: `apps/web/lib/preferences.ts`, `apps/web/lib/preferences.test.ts`, `apps/web/components/SettingsForm.tsx`, `apps/web/components/SettingsForm.test.tsx`, `apps/web/components/SideNav.tsx`, `apps/web/components/SideNav.test.tsx`, `apps/web/app/(app)/settings/page.tsx`
+- Delete: `apps/web/components/Aurora.tsx`, `apps/web/components/ThemePicker.tsx` (และเทสต์), `apps/web/lib/theme.ts`
+- Modify: `apps/web/app/globals.css`, `apps/web/app/layout.tsx`, `apps/web/app/(app)/layout.tsx`, ทุกหน้าใน `apps/web/app` และ component ของหน้าเหล่านั้น
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** `parsePreferences` คืน light/normal เมื่อค่าไม่รู้จัก; `SettingsForm` เลือกแล้ว `<html>` และ cookie เปลี่ยน; `SideNav` ใส่ `aria-current` ที่ลิงก์ที่ตรงที่สุด
+- [x] **Step 2: เขียน design system, แถบด้านข้าง, หน้าตั้งค่า แล้ว re-skin ทุกหน้า**
+- [x] **Step 3: รัน** `corepack pnpm --filter web test`, `corepack pnpm typecheck`, `corepack pnpm --filter web build`, `corepack pnpm test:e2e` แล้วดูภาพหน้าจอทุกหน้าที่ 1280px และ 390px ทั้งสองโหมดและตัวอักษรใหญ่
+- [x] **Step 4: Commit** แยกเป็น design system + shell + settings และ re-skin หน้า
+
+---
+
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER

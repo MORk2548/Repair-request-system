@@ -8,12 +8,15 @@ export default async function AdminListsPage() {
 
   return (
     <div className="stack">
-      <h1>แผนกและหมวด</h1>
-      <p className="hint">รายการที่ปิดใช้งานจะไม่แสดงให้เลือกในฟอร์ม แต่ใบแจ้งซ่อมเดิมยังแสดงชื่อได้ จึงไม่มีการลบ</p>
+      <header className="page-head">
+        <div className="eyebrow">ผู้ดูแลระบบ</div>
+        <h1>แผนกและหมวด</h1>
+        <p>รายการที่ปิดใช้งานจะไม่แสดงให้เลือกในฟอร์ม แต่ใบแจ้งซ่อมเดิมยังแสดงชื่อได้ จึงไม่มีการลบ</p>
+      </header>
 
       <section className="stack" aria-labelledby="departments">
         <h2 id="departments">แผนก</h2>
-        <div className="card">
+        <div className="panel">
           <LookupForm kind="department" />
         </div>
         <div className="table-wrap">
@@ -38,7 +41,7 @@ export default async function AdminListsPage() {
 
       <section className="stack" aria-labelledby="categories">
         <h2 id="categories">หมวดหมู่</h2>
-        <div className="card">
+        <div className="panel">
           <LookupForm kind="category" />
         </div>
         <div className="table-wrap">

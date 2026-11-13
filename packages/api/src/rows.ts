@@ -78,6 +78,8 @@ export type Equipment = {
 export type Technician = { id: string; displayName: string };
 export type Profile = { id: string; displayName: string; role: Role };
 
+export type Account = Profile & { departmentName: string | null; createdAt: string };
+
 export const toCategory = (r: Tables<'categories'>): Category => ({ id: r.id, name: r.name, sortOrder: r.sort_order, isActive: r.is_active });
 
 export const toDepartment = (r: Tables<'departments'>): Department => ({ id: r.id, name: r.name, isActive: r.is_active });
@@ -91,6 +93,10 @@ export const toEquipment = (r: Tables<'equipment'>): Equipment => ({
   installLocation: r.install_location,
   status: r.status,
 });
+
+export const toAccount = (
+  r: Pick<Tables<'profiles'>, 'id' | 'display_name' | 'role' | 'created_at'> & { departments: Pick<Tables<'departments'>, 'name'> | null },
+): Account => ({ ...toProfile(r), departmentName: r.departments?.name ?? null, createdAt: r.created_at });
 
 export const toProfile = (r: Pick<Tables<'profiles'>, 'id' | 'display_name' | 'role'>): Profile => ({
   id: r.id,

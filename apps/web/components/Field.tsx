@@ -11,7 +11,7 @@ export function Field({ label, error, children }: { label: string; error?: strin
       <label htmlFor={id}>{label}</label>
       {children(error ? { id, 'aria-invalid': true, 'aria-describedby': errorId } : { id })}
       {error && (
-        <p id={errorId} className="error">
+        <p id={errorId} className="field-error">
           {error}
         </p>
       )}

@@ -15,8 +15,12 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
 
   return (
     <div className="stack">
-      <h1>รายงาน</h1>
-      <form method="get" className="card stack">
+      <header className="page-head">
+        <div className="eyebrow">ผู้ดูแลระบบ</div>
+        <h1>รายงาน</h1>
+        <p>นับใบแจ้งซ่อมตามวันที่แจ้ง (เวลาไทย) รวมวันแรกและวันสุดท้าย</p>
+      </header>
+      <form method="get" className="panel">
         <div className="row">
           <div className="field">
             <label htmlFor="from">ตั้งแต่วันที่</label>
@@ -28,24 +32,28 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
           </div>
         </div>
         {rangeError && (
-          <p role="alert" className="error">
+          <p role="alert" className="alert alert-error">
             {rangeError} แสดงเดือนปัจจุบันแทน
           </p>
         )}
-        <div>
-          <button type="submit" className="button primary">
+        <div className="actions">
+          <button type="submit" className="button">
             แสดงรายงาน
           </button>
         </div>
       </form>
 
-      {summary.total === 0 && <p className="empty">ไม่มีใบแจ้งซ่อมในช่วงนี้</p>}
+      {summary.total === 0 && <p className="panel empty">ไม่มีใบแจ้งซ่อมในช่วงนี้</p>}
 
-      <dl className="details">
-        <dt>จำนวนใบแจ้งซ่อมทั้งหมด</dt>
-        <dd>{summary.total}</dd>
-        <dt>เวลาเฉลี่ยจากแจ้งถึงแก้เสร็จ</dt>
-        <dd>{summary.avgResolveHours === null ? '-' : `${summary.avgResolveHours} ชั่วโมง`}</dd>
+      <dl className="detail-grid summary">
+        <div>
+          <dt>จำนวนใบแจ้งซ่อมทั้งหมด</dt>
+          <dd>{summary.total}</dd>
+        </div>
+        <div>
+          <dt>เวลาเฉลี่ยจากแจ้งถึงแก้เสร็จ</dt>
+          <dd>{summary.avgResolveHours === null ? '-' : `${summary.avgResolveHours} ชั่วโมง`}</dd>
+        </div>
       </dl>
 
       <CountTable

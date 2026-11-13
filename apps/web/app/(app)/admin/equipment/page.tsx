@@ -8,11 +8,14 @@ export default async function AdminEquipmentPage() {
 
   return (
     <div className="stack">
-      <h1>อุปกรณ์</h1>
-      <div className="card">
+      <header className="page-head">
+        <div className="eyebrow">ผู้ดูแลระบบ</div>
+        <h1>อุปกรณ์</h1>
+      </header>
+      <div className="panel">
         <EquipmentForm departments={departments} />
       </div>
-      <p className="hint">สถานะ "กำลังซ่อม" และ "ใช้งาน" ปรับเองตามใบแจ้งซ่อมที่กำลังดำเนินการ ส่วน "ปลดระวาง" ตั้งได้ที่นี่เท่านั้น</p>
+      <p className="muted">สถานะ "กำลังซ่อม" และ "ใช้งาน" ปรับเองตามใบแจ้งซ่อมที่กำลังดำเนินการ ส่วน "ปลดระวาง" ตั้งได้ที่นี่เท่านั้น</p>
       <div className="table-wrap">
         <table>
           <thead>

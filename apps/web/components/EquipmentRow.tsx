@@ -30,7 +30,7 @@ export function EquipmentRow({ equipment, departments }: { equipment: Equipment;
       <td>{equipment.installLocation ?? '-'}</td>
       <td>{EQUIPMENT_STATUS_LABELS[equipment.status]}</td>
       <td>
-        <button type="button" onClick={() => setEditing(true)}>
+        <button type="button" className="button button-secondary" onClick={() => setEditing(true)}>
           แก้ไข
         </button>
       </td>
@@ -77,7 +77,7 @@ export function EquipmentForm({ equipment, departments, onDone }: { equipment?: 
   }
 
   return (
-    <form className="stack" onSubmit={submit} noValidate aria-label={equipment ? `แก้ไข ${equipment.assetTag}` : 'เพิ่มอุปกรณ์'}>
+    <form onSubmit={submit} noValidate aria-label={equipment ? `แก้ไข ${equipment.assetTag}` : 'เพิ่มอุปกรณ์'}>
       <div className="row">
         {input('assetTag', 'รหัสทรัพย์สิน')}
         {input('name', 'ชื่ออุปกรณ์')}
@@ -110,12 +110,12 @@ export function EquipmentForm({ equipment, departments, onDone }: { equipment?: 
         </Field>
       </div>
       <ActionError error={error} />
-      <div className="row">
-        <button type="submit" className="primary" disabled={pending} aria-busy={pending}>
+      <div className="actions">
+        <button type="submit" className="button" disabled={pending} aria-busy={pending}>
           {equipment ? 'บันทึก' : 'เพิ่มอุปกรณ์'}
         </button>
         {onDone && (
-          <button type="button" disabled={pending} onClick={onDone}>
+          <button type="button" className="button button-secondary" disabled={pending} onClick={onDone}>
             ยกเลิก
           </button>
         )}

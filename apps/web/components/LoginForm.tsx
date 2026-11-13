@@ -25,7 +25,7 @@ export function LoginForm() {
   }
 
   return (
-    <form className="card stack" onSubmit={submit}>
+    <form onSubmit={submit}>
       <h1>เข้าสู่ระบบ</h1>
       <div className="field">
         <label htmlFor="email">อีเมล</label>
@@ -36,11 +36,11 @@ export function LoginForm() {
         <input id="password" name="password" type="password" autoComplete="current-password" required />
       </div>
       {failed && (
-        <p role="alert" className="error">
+        <p role="alert" className="alert alert-error">
           อีเมลหรือรหัสผ่านไม่ถูกต้อง
         </p>
       )}
-      <button type="submit" className="primary" disabled={sending}>
+      <button type="submit" className="button button-block" disabled={sending}>
         เข้าสู่ระบบ
       </button>
     </form>
