@@ -614,21 +614,55 @@ test('VersionConflictError shows reload message', /* … */);
 
 ### Task 12: ปล่อยใช้งานและ smoke test
 
+แบ่งเป็นสี่ task ย่อย ทำทีละข้อและ commit แยกกัน
+
+**ทำบน Supabase project จริงแล้ว (นอก repo):**
+- [x] push schema ด้วย `supabase db push`
+- [x] deploy `admin-users` และ `notify-ticket-event` (`verify_jwt = false` ตาม `config.toml`)
+- [x] ตั้ง secrets ของ Edge Function ด้วย `supabase secrets set` และ Vault secrets สองตัวของ trigger `notify_ticket_event` ผ่าน SQL editor: `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');` และ `select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');` (seed.sql ไม่ถูกโหลดใน production; ถ้าไม่ตั้ง trigger จะไม่ส่งอะไรเลย)
+- [x] อีเมลของ Auth (คำเชิญ) ส่งผ่าน Gmail SMTP พร้อม template คำเชิญภาษาไทย
+- [x] สร้าง admin คนแรก
+
+---
+
+### Task 12.1: smoke test ด้วย Playwright
+
 **Files:**
-- Create: `e2e/smoke.spec.ts`, `playwright.config.ts`, `.env.example`, `README.md` (ขั้นตอนตั้งค่า Supabase/Vercel/EAS)
-- Modify: `apps/web/next.config.ts` (ถ้าจำเป็น)
+- Create: `e2e/smoke.spec.ts`, `e2e/resend-mock.ts`, `playwright.config.ts`
+- Modify: `package.json` (`@playwright/test`, สคริปต์ `test:e2e`), `apps/web/next.config.ts` (`distDir` จาก `NEXT_DIST_DIR` ให้ server ของเทสต์ไม่ใช้ `.next` ร่วมกับ dev server), `apps/web/tsconfig.json`, `tsconfig.json`, `.gitignore`, `AGENTS.md`
 
-**Interfaces:**
-- Consumes: ทุก Task ก่อนหน้า
-- Produces: เว็บ deploy บน Vercel, ฐานข้อมูล/Edge Function บน Supabase project จริง, แอป build ด้วย EAS (internal distribution)
+- [x] **Step 1: เขียน Playwright smoke** ผ่าน UI จริงด้วยบัญชี dev จาก `supabase/seed.sql`: reporter ล็อกอิน → สร้างใบแจ้งซ่อมพร้อมรูป เลือกอุปกรณ์จากช่องค้นแล้วเห็นสถานที่ถูกเติม → เห็นเลข `RQ-` ในรายการและอุปกรณ์ในหน้า detail; admin มอบหมายช่าง → ช่าง `ส่งต่อช่างคนอื่น` (ตัวเลือกไม่มีชื่อตัวเอง เหตุผลว่างถูกปฏิเสธ) → ช่างคนใหม่ `เริ่มงาน` → `เสร็จงาน` (วิธีแก้ไขว่างเห็น "กรุณากรอกวิธีแก้ไข") → reporter `ปิดงาน` แล้วใบอยู่สถานะปิดงานและไม่มีปุ่มเหลือ; admin ปิดบัญชีผู้ใช้หนึ่งคนแล้วผู้ใช้นั้นล็อกอินไม่ได้ จากนั้นเปิดคืนและล็อกอินได้; เซิร์ฟเวอร์จำลอง Resend (`globalSetup` พอร์ต 8799, `RESEND_API_URL` ชี้มา) ได้รับอีเมลถึงผู้แจ้งตอน `assigned` และ `done` (รันเมื่อ `E2E_EMAIL=1` เท่านั้น เพราะต้อง restart stack ด้วยค่าใน `supabase/functions/.env` ตาม AGENTS.md); หัวข้อใบมี run id ไม่ซ้ำ จึงไม่ต้องใช้ฐานข้อมูลว่าง; config ไม่ยอมรันถ้า `NEXT_PUBLIC_SUPABASE_URL` ไม่ใช่ local
+- [x] **Step 2: รัน** `corepack pnpm test:e2e` กับ Supabase local — ฟีเจอร์ทำเสร็จหมดแล้วจึงผ่านตั้งแต่รอบแรก; ยืนยันว่าเทสต์จับความผิดได้โดยแก้ให้คาดสถานะสุดท้ายผิดแล้วเห็น FAIL จากนั้นแก้คืน; รันผ่านสองรอบติดกัน และหนึ่งรอบด้วย `E2E_EMAIL=1`
+- [x] **Step 3: Commit** `git commit -m "test: e2e smoke test of the full ticket cycle"`
 
-- [ ] **Step 1: เขียน Playwright smoke** ที่ล้มเหลว: reporter ล็อกอิน → สร้างใบแจ้งซ่อมพร้อมรูป → เห็นเลข `RQ-` ในรายการ; admin ล็อกอิน → มอบหมายช่าง → ช่างล็อกอิน → `ส่งต่อช่างคนอื่น` พร้อมเหตุผล → ช่างคนใหม่ล็อกอิน → `เริ่มงาน` → `เสร็จงาน`; (ช่องวิธีแก้ไขว่างต้องกดส่งไม่ได้); reporter เลือกอุปกรณ์ตอนแจ้งแล้วเห็นในหน้า detail; admin ปิดบัญชีผู้ใช้หนึ่งคนแล้วผู้ใช้นั้นล็อกอินไม่ได้; reporter `ปิดงาน` แล้วใบอยู่สถานะ `closed` และไม่มีปุ่มเหลือ; ระหว่างทางตรวจว่าเซิร์ฟเวอร์จำลอง Resend (ตั้ง `RESEND_API_URL` ชี้มาที่เทสต์) ได้รับอีเมลถึงผู้แจ้งตอน `assigned` และ `done`
-- [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local (ใช้บัญชี dev จาก `supabase/seed.sql`) — คาดว่า FAIL
-- [ ] **Step 3: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
+---
 
-  จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`, `NOTIFY_WEBHOOK_SECRET` เป็นค่าสุ่มยาว) ด้วย `supabase secrets set`; ต่อ trigger `notify_ticket_event` ใน project จริงด้วย Vault secrets สองตัวผ่าน SQL editor: `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');` และ `select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');` (seed.sql ไม่ถูกโหลดใน production; ถ้าไม่ตั้ง trigger จะไม่ส่งอะไรเลย); deploy ฟังก์ชันพร้อม `verify_jwt = false` ตาม `config.toml`; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); แอป: สมัครบัญชี Expo แล้ว `npx eas init` ใน `apps/mobile` (เขียน `extra.eas.projectId` ลง `app.json`) — ไม่มี project id แอปจะข้ามการลงทะเบียน push; push บน Android ต้องอัปโหลด FCM credentials (ไฟล์ service account ของ Firebase) ด้วย `eas credentials` และ push บน iOS ต้องมี Apple Developer account ให้ EAS สร้าง APNs key; deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
-- [ ] **Step 4: รัน** `pnpm exec playwright test` — คาดว่า PASS; แล้วลองบนมือถือจริงหนึ่งเครื่อง: สร้างใบ → admin มอบหมาย → ได้ push และอีเมลภายใน 1 นาที (ตรวจว่าอีเมลไม่เข้าสแปม)
-- [ ] **Step 5: Commit** `git commit -m "chore: e2e smoke test and deployment docs"`
+### Task 12.2: เว็บบน Vercel
+
+**Files:**
+- Create: `.env.example`, `README.md` (ขั้นตอนตั้งค่า Supabase/Vercel/EAS)
+
+- [ ] **Step 1: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
+- [ ] **Step 2: deploy** ด้วย `vercel deploy --prod` พร้อม `NEXT_PUBLIC_SUPABASE_URL` และ `NEXT_PUBLIC_SUPABASE_ANON_KEY` ของ project จริง; ตั้ง `WEB_BASE_URL` ของ Edge Function เป็น URL ของ Vercel และเพิ่ม `<url>/auth/confirm` ใน redirect URLs ของ Auth
+- [ ] **Step 3: ตรวจบนเว็บจริง** ล็อกอิน admin → เชิญผู้ใช้ → ลิงก์ในอีเมลพาไป `/set-password` บนโดเมน Vercel
+- [ ] **Step 4: Commit** `git commit -m "chore: deployment docs"`
+
+---
+
+### Task 12.3: แอปมือถือ build ด้วย EAS
+
+- [ ] **Step 1:** สมัครบัญชี Expo แล้ว `npx eas init` ใน `apps/mobile` (เขียน `extra.eas.projectId` ลง `app.json`) — ไม่มี project id แอปจะข้ามการลงทะเบียน push; push บน Android ต้องอัปโหลด FCM credentials (ไฟล์ service account ของ Firebase) ด้วย `eas credentials` และ push บน iOS ต้องมี Apple Developer account ให้ EAS สร้าง APNs key
+- [ ] **Step 2: build** ด้วย `eas build --profile preview` (internal distribution) ชี้ไปที่ project จริง
+- [ ] **Step 3: ลองบนมือถือจริงหนึ่งเครื่อง:** สร้างใบ → admin มอบหมาย → ได้ push ภายใน 1 นาที
+- [ ] **Step 4: Commit** `git commit -m "chore(mobile): EAS project and preview build"`
+
+---
+
+### Task 12.4: อีเมลแจ้งเตือนใน production
+
+- [ ] **Step 1:** ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM) และตั้ง `RESEND_API_KEY`, `EMAIL_FROM` (ที่อยู่บนโดเมนนั้น) ด้วย `supabase secrets set`
+- [ ] **Step 2: ตรวจจริง:** สร้างใบ → admin มอบหมาย → ผู้แจ้งได้อีเมลภายใน 1 นาที และอีเมลไม่เข้าสแปม; ลิงก์ในอีเมลเปิดใบบนโดเมน Vercel
+- [ ] **Step 3: Commit** การเปลี่ยนแปลงเอกสาร (ถ้ามี)
 
 ---
 

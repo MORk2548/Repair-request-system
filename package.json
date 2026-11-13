@@ -13,9 +13,11 @@
     "gen:types": "supabase gen types typescript --local > packages/api/src/database.types.ts",
     "web:dev": "corepack pnpm --filter web dev",
     "test:db": "supabase test db && corepack pnpm --filter @repair/core test:db && corepack pnpm --filter @repair/api test:db",
-    "mobile:dev": "corepack pnpm --filter mobile dev"
+    "mobile:dev": "corepack pnpm --filter mobile dev",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "supabase": "3.1.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"

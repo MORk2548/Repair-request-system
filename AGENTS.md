@@ -31,6 +31,8 @@ An internal repair-request system for one organization. Reporters file repair ti
 | Rebuild the local database from migrations and load the dev seed | `corepack pnpm db:reset` |
 | Run the pgTAP tests, the core parity test and the `@repair/api` tests (the local stack must be running, including the `admin-users` function; see Dev database) | `corepack pnpm test:db` |
 | Regenerate `packages/api/src/database.types.ts` after a migration (the local stack must be running) | `corepack pnpm gen:types` |
+| Install the Chromium the smoke test drives (once per PC) | `corepack pnpm exec playwright install chromium` |
+| Run the Playwright smoke test of the full ticket cycle against local Supabase (not part of `corepack pnpm test`; see E2E smoke test) | `corepack pnpm test:e2e` |
 
 ## Dev accounts
 
@@ -89,3 +91,18 @@ Seed user ids start with `5eed0000-`, so pgTAP tests that insert fixed `00000000
 - `db:start` serves the Edge Functions too, and reads `supabase/functions/.env` (copy `supabase/functions/.env.example`) only when the stack starts, so restart it (`corepack pnpm exec supabase stop`, then `db:start`) after changing that file. The `admin-users` tests in `test:db` fail if the function is not served: after Docker Desktop restarts, `supabase start` leaves the edge runtime container stopped, so `db:start` also runs `docker start supabase_edge_runtime_repair-request-system`. `supabase functions serve` is not needed.
 - With the seed's Vault secrets, every ticket event the api tests commit also calls `notify-ticket-event`. That is expected; test users have no push token, so those calls only count skips.
 - `corepack pnpm test:db` writes test users, categories, equipment and tickets into the local dev database and leaves them there. Run `corepack pnpm db:reset` afterwards to get back to seed data only (it also deletes any tickets created by hand).
+
+## E2E smoke test
+
+- `e2e/smoke.spec.ts` drives the real web UI with the seed accounts: nattawut files a ticket with a PNG and the equipment AC-0001, admin assigns kittipong, kittipong hands it to orathai, orathai starts and completes it, nattawut closes it. A second test deactivates orathai.k, checks that the sign-in is refused, and reactivates the account in a `finally`. Each run titles its ticket with a new run id and finds rows by that title, so it never needs an empty database. Selectors are roles and the Thai accessible names.
+- `playwright.config.ts` starts its own `next dev` on port 3200 with `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` and the local `ANON_KEY` from `supabase status` (or `SUPABASE_ANON_KEY`). Next never overrides a variable already in the environment, so `apps/web/.env.local` (which may point at the cloud project) is ignored, and the config refuses to run when `NEXT_PUBLIC_SUPABASE_URL` is not a `127.0.0.1` or `localhost` URL. The server builds into `apps/web/.next-e2e` (`NEXT_DIST_DIR`), so it can run beside a `web:dev` server on port 3000 in the same checkout. Each run leaves a closed ticket behind; `corepack pnpm db:reset` removes it.
+- The email check is skipped unless `E2E_EMAIL=1`. `e2e/resend-mock.ts` (Playwright `globalSetup`) listens on port 8799 in place of Resend and records every POST. To run it, put these lines in `supabase/functions/.env`, restart the stack (`corepack pnpm exec supabase stop`, then `corepack pnpm db:start`) and run `$env:E2E_EMAIL="1"; corepack pnpm test:e2e`:
+
+  ```
+  NOTIFY_WEBHOOK_SECRET=local-dev-notify-secret
+  RESEND_API_URL=http://host.docker.internal:8799/emails
+  RESEND_API_KEY=e2e
+  EMAIL_FROM=e2e <e2e@helpdesk.test>
+  ```
+
+  It waits up to 30 seconds per status for an email to nattawut whose subject starts with `[แจ้งซ่อม] ` for the moves to มอบหมายแล้ว and แก้ไขเสร็จ. Remove the three Resend lines and restart the stack afterwards, or every ticket change while you work keeps trying to email the mock.
