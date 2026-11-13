@@ -68,6 +68,8 @@ admin คนแรก: สร้างผู้ใช้ใน Authentication �
 4. กด Deploy
 5. เอาที่อยู่ที่ได้ (เช่น `https://<ชื่อ>.vercel.app`) ไปใส่ใน Site URL และ Redirect URL ของ Supabase และตั้ง `WEB_BASE_URL` ของฟังก์ชันใหม่ด้วยคำสั่ง `secrets set` ข้างบน
 
+`apps/web/vercel.json` ให้เซิร์ฟเวอร์ของเว็บรันที่มุมไบ (`bom1`) ข้างฐานข้อมูล Supabase (`ap-south-1`) ถ้าสร้าง project Supabase ในภูมิภาคอื่น ให้เปลี่ยนค่านี้ตาม เพราะทุกหน้าคุยกับฐานข้อมูลหลายรอบ
+
 ถ้าขั้นติดตั้งบน Vercel ใช้ pnpm คนละรุ่นกับ `packageManager` ใน `package.json` ให้เพิ่ม Environment Variable `ENABLE_EXPERIMENTAL_COREPACK` = `1`
 
 ### 3. แอปมือถือ
