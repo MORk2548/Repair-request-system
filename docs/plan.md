@@ -666,6 +666,22 @@ test('VersionConflictError shows reload message', /* … */);
 
 ---
 
+### Task 12.5: หน้าเข้าสู่ระบบแบบ AURORA (glassmorphism โทนกลางคืน)
+
+ใช้กับ `/login` และ `/set-password` บนเว็บเท่านั้น หน้าอื่นและแอปมือถือคงเดิม สีพื้น `#060918`, ตัวอักษร `#E8ECF8`, ตัวรอง `#8B93B5`, แสงออโรรา `#3EE6C4` กับ `#8A6CFF`; การ์ดกระจก (`backdrop-filter: blur`) มุม 16px; ฟอนต์ยังเป็น Noto Sans Thai เพราะ `system-ui` บางเครื่องไม่มีอักษรไทย; ภาพเคลื่อนไหวทั้งหมดหยุดเมื่อ `prefers-reduced-motion: reduce`; สีทุกคู่ผ่าน WCAG AA (ข้อความ 4.5:1)
+
+**Files:**
+- Create: `apps/web/components/AuthShell.tsx`, `apps/web/components/AuthShell.test.tsx`
+- Modify: `apps/web/app/login/page.tsx`, `apps/web/app/set-password/page.tsx`, `apps/web/app/globals.css`
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว** `AuthShell.test.tsx`: แสดงชื่อระบบ "ระบบแจ้งซ่อม" และ children ภายใน `main`; ชั้นแสงตกแต่งมี `aria-hidden="true"`
+- [x] **Step 2: รัน** `corepack pnpm --filter web test AuthShell` — คาดว่า FAIL
+- [x] **Step 3: เขียน `AuthShell`** ให้สองหน้าใช้ และสไตล์ใต้ `.auth` ใน `globals.css` (override token สีเฉพาะใน `.auth` จึงไม่กระทบหน้าอื่น)
+- [x] **Step 4: รัน** `corepack pnpm --filter web test`, `corepack pnpm typecheck`, `corepack pnpm --filter web build` — คาดว่า PASS; แล้วเปิด `/login` ดูจริงที่กว้าง 375px และ 1280px
+- [x] **Step 5: Commit** `git commit -m "feat(web): aurora glass sign-in pages"`
+
+---
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER
