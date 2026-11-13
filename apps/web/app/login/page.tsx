@@ -1,13 +1,12 @@
 import { AuthShell } from '../../components/AuthShell';
 import { LoginForm } from '../../components/LoginForm';
-import { getThemeId } from '../../lib/theme';
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const [{ error }, theme] = await Promise.all([searchParams, getThemeId()]);
+  const { error } = await searchParams;
   return (
-    <AuthShell theme={theme}>
+    <AuthShell>
       {error === 'link' && (
-        <p className="notice" role="alert">
+        <p className="alert alert-error" role="alert">
           ลิงก์ไม่ถูกต้องหรือหมดอายุ
         </p>
       )}

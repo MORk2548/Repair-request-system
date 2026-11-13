@@ -8,6 +8,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
+      className="logout-button"
       onClick={async () => {
         await createBrowserDb().auth.signOut();
         router.replace('/login');

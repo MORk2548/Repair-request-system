@@ -1,18 +1,12 @@
-import type { ThemeId } from '@repair/core';
 import type { ReactNode } from 'react';
-import { ThemePicker } from './ThemePicker';
 
-export function AuthShell({ theme, children }: { theme: ThemeId; children: ReactNode }) {
+export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="auth">
-      <main className="login">
-        <p className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          ระบบแจ้งซ่อม
-        </p>
+    <main className="guest">
+      <div className="panel">
+        <div className="eyebrow">ระบบแจ้งซ่อม</div>
         {children}
-        <ThemePicker current={theme} />
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
