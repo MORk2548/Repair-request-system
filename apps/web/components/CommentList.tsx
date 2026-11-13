@@ -36,23 +36,23 @@ export function CommentList({ ticketId, comments, people }: { ticketId: string; 
   }
 
   return (
-    <section className="stack" aria-labelledby="comments-heading">
+    <section className="panel" aria-labelledby="comments-heading">
       <h2 id="comments-heading">ความคิดเห็น</h2>
       {comments.length === 0 ? (
-        <p className="hint">ยังไม่มีความคิดเห็น</p>
+        <p className="muted comments-empty">ยังไม่มีความคิดเห็น</p>
       ) : (
         <ol className="comments">
           {comments.map((c) => (
             <li key={c.id}>
-              <p className="meta">
-                <strong>{people[c.authorId] ?? 'ไม่ทราบชื่อ'}</strong> <time dateTime={c.createdAt}>{formatThaiDateTime(c.createdAt)}</time>
+              <p>
+                <strong>{people[c.authorId] ?? 'ไม่ทราบชื่อ'}</strong> <time className="when" dateTime={c.createdAt}>{formatThaiDateTime(c.createdAt)}</time>
               </p>
-              <p className="body">{c.body}</p>
+              <p className="description">{c.body}</p>
             </li>
           ))}
         </ol>
       )}
-      <form className="stack" onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate>
         <div className="field">
           <label htmlFor="comment">เขียนความคิดเห็น</label>
           <textarea
@@ -63,18 +63,18 @@ export function CommentList({ ticketId, comments, people }: { ticketId: string; 
             {...(invalid ? { 'aria-invalid': true, 'aria-describedby': 'comment-error' } : {})}
           />
           {invalid && (
-            <p id="comment-error" className="error">
+            <p id="comment-error" className="field-error">
               {invalid}
             </p>
           )}
         </div>
         {failed && (
-          <p className="error" role="alert">
+          <p className="alert alert-error" role="alert">
             ส่งความคิดเห็นไม่สำเร็จ กรุณาลองอีกครั้ง
           </p>
         )}
-        <div className="row">
-          <button type="submit" className="primary" disabled={sending}>
+        <div className="actions">
+          <button type="submit" className="button" disabled={sending}>
             ส่งความคิดเห็น
           </button>
         </div>

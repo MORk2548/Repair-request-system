@@ -35,25 +35,25 @@ export function UserRow({ user, departments, isSelf }: { user: AdminUser; depart
       <td>
         {mode === 'confirm' ? (
           <div className="stack tight">
-            <p className="body">
+            <p className="description">
               {user.isActive ? 'ยืนยันปิดใช้งาน' : 'ยืนยันเปิดใช้งาน'} {user.displayName} หรือไม่
             </p>
             <div className="row">
-              <button type="button" className={user.isActive ? 'danger' : 'primary'} disabled={pending} onClick={() => void toggle()}>
+              <button type="button" className={user.isActive ? 'button button-danger' : 'button'} disabled={pending} onClick={() => void toggle()}>
                 ยืนยัน
               </button>
-              <button type="button" disabled={pending} onClick={() => setMode('view')}>
+              <button type="button" className="button button-secondary" disabled={pending} onClick={() => setMode('view')}>
                 ยกเลิก
               </button>
             </div>
           </div>
         ) : (
           <div className="row">
-            <button type="button" onClick={() => setMode('edit')}>
+            <button type="button" className="button button-secondary" onClick={() => setMode('edit')}>
               แก้ไข
             </button>
             {!isSelf && (
-              <button type="button" className={user.isActive ? 'danger' : undefined} onClick={() => setMode('confirm')}>
+              <button type="button" className={user.isActive ? 'button button-danger' : 'button button-secondary'} onClick={() => setMode('confirm')}>
                 {user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
               </button>
             )}
@@ -88,7 +88,7 @@ function UserEditForm({ user, departments, isSelf, onDone }: { user: AdminUser; 
   }
 
   return (
-    <form className="stack" onSubmit={submit} noValidate aria-label={`แก้ไข ${user.displayName}`}>
+    <form onSubmit={submit} noValidate aria-label={`แก้ไข ${user.displayName}`}>
       <div className="row">
         <Field label="ชื่อ" error={errors.displayName}>
           {(p) => <input {...p} value={fields.displayName} onChange={(e) => setFields((f) => ({ ...f, displayName: e.target.value }))} />}
@@ -120,11 +120,11 @@ function UserEditForm({ user, departments, isSelf, onDone }: { user: AdminUser; 
         </Field>
       </div>
       <ActionError error={error} />
-      <div className="row">
-        <button type="submit" className="primary" disabled={pending} aria-busy={pending}>
+      <div className="actions">
+        <button type="submit" className="button" disabled={pending} aria-busy={pending}>
           บันทึก
         </button>
-        <button type="button" disabled={pending} onClick={onDone}>
+        <button type="button" className="button button-secondary" disabled={pending} onClick={onDone}>
           ยกเลิก
         </button>
       </div>

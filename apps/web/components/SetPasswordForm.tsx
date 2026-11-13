@@ -31,7 +31,7 @@ export function SetPasswordForm() {
   }
 
   return (
-    <form className="card stack" onSubmit={submit} noValidate>
+    <form onSubmit={submit} noValidate>
       <h1>ตั้งรหัสผ่าน</h1>
       <Field label="รหัสผ่านใหม่" error={errors.password}>
         {(p) => <input {...p} name="password" type="password" autoComplete="new-password" />}
@@ -40,11 +40,11 @@ export function SetPasswordForm() {
         {(p) => <input {...p} name="confirm" type="password" autoComplete="new-password" />}
       </Field>
       {failed && (
-        <p role="alert" className="error">
+        <p role="alert" className="alert alert-error">
           ตั้งรหัสผ่านไม่สำเร็จ กรุณาลองอีกครั้ง
         </p>
       )}
-      <button type="submit" className="primary" disabled={sending} aria-busy={sending}>
+      <button type="submit" className="button button-block" disabled={sending} aria-busy={sending}>
         บันทึกรหัสผ่าน
       </button>
     </form>

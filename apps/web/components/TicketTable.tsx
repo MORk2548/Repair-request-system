@@ -2,9 +2,9 @@ import { PRIORITY_LABELS, STATUS_LABELS, formatThaiDateTime, type Ticket } from 
 import Link from 'next/link';
 
 export function TicketTable({ items }: { items: Ticket[] }) {
-  if (items.length === 0) return <p className="empty">ยังไม่มีใบแจ้งซ่อม</p>;
+  if (items.length === 0) return <p className="panel empty">ยังไม่มีใบแจ้งซ่อม</p>;
   return (
-    <div className="table-wrap">
+    <div className="table-wrap ticket-table">
       <table>
         <thead>
           <tr>
@@ -21,12 +21,14 @@ export function TicketTable({ items }: { items: Ticket[] }) {
               <td className="nowrap">
                 <Link href={`/tickets/${t.id}`}>{t.ticketNo}</Link>
               </td>
-              <td>{t.title}</td>
+              <td className="ticket-subject">{t.title}</td>
               <td>
-                <span className={`badge status-${t.status}`}>{STATUS_LABELS[t.status]}</span>
+                <span className={`status status-${t.status}`}>{STATUS_LABELS[t.status]}</span>
               </td>
-              <td className={t.priority === 'urgent' ? 'urgent' : undefined}>{PRIORITY_LABELS[t.priority]}</td>
-              <td className="nowrap">{formatThaiDateTime(t.createdAt)}</td>
+              <td className="priority-cell">
+                {t.priority === 'urgent' ? <span className="priority priority-urgent">{PRIORITY_LABELS.urgent}</span> : PRIORITY_LABELS[t.priority]}
+              </td>
+              <td className="nowrap date-cell">{formatThaiDateTime(t.createdAt)}</td>
             </tr>
           ))}
         </tbody>

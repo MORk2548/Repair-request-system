@@ -35,7 +35,7 @@ export function useAction() {
 
 export function ActionError({ error }: { error: string | null }) {
   return error ? (
-    <p className="error" role="alert">
+    <p className="alert alert-error" role="alert">
       {error}
     </p>
   ) : null;

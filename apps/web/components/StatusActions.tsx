@@ -91,7 +91,7 @@ export function StatusActions({
   const describe = (name: Field) => (fieldErrors[name] ? { 'aria-invalid': true, 'aria-describedby': `${name}-error` } : {});
   const fieldError = (name: Field) =>
     fieldErrors[name] && (
-      <p id={`${name}-error`} className="error">
+      <p id={`${name}-error`} className="field-error">
         {fieldErrors[name]}
       </p>
     );
@@ -110,11 +110,11 @@ export function StatusActions({
     </div>
   );
   const formButtons = (
-    <div className="row">
-      <button type="submit" className="primary" disabled={pending}>
+    <div className="actions">
+      <button type="submit" className="button" disabled={pending}>
         ยืนยัน
       </button>
-      <button type="button" disabled={pending} onClick={() => open(idle)}>
+      <button type="button" className="button button-secondary" disabled={pending} onClick={() => open(idle)}>
         ย้อนกลับ
       </button>
     </div>
@@ -123,23 +123,23 @@ export function StatusActions({
   if (actions.length === 0) return null;
 
   return (
-    <section className="card stack" aria-label="จัดการใบแจ้งซ่อม">
+    <section className="panel" aria-label="จัดการใบแจ้งซ่อม">
       {panel.kind === 'conflict' ? (
-        <div className="notice stack" role="alert">
+        <div className="alert alert-warning" role="alert">
           <p>มีผู้อื่นอัปเดตใบนี้แล้ว กรุณาโหลดใหม่</p>
-          <div className="row">
-            <button type="button" className="primary" onClick={() => router.refresh()}>
+          <div className="actions">
+            <button type="button" className="button" onClick={() => router.refresh()}>
               โหลดใหม่
             </button>
           </div>
         </div>
       ) : panel.kind === 'idle' ? (
-        <div className="row">
+        <div className="actions">
           {actions.map((a) => (
             <button
               key={a.kind === 'transition' ? a.to : a.kind}
               type="button"
-              className={a.kind === 'transition' && a.to === 'cancelled' ? 'danger' : 'primary'}
+              className={a.kind === 'transition' && a.to === 'cancelled' ? 'button button-danger' : 'button'}
               disabled={pending}
               aria-busy={pending}
               onClick={() => choose(a)}
@@ -149,19 +149,19 @@ export function StatusActions({
           ))}
         </div>
       ) : panel.kind === 'cancel' ? (
-        <div className="stack">
+        <div>
           <p>ยืนยันยกเลิกใบแจ้งซ่อม {ticket.ticketNo} หรือไม่</p>
-          <div className="row">
-            <button type="button" className="danger" disabled={pending} onClick={() => void run((db) => transitionTicket(db, { ...base, to: 'cancelled' }))}>
+          <div className="actions">
+            <button type="button" className="button button-danger" disabled={pending} onClick={() => void run((db) => transitionTicket(db, { ...base, to: 'cancelled' }))}>
               ยืนยันยกเลิกใบแจ้ง
             </button>
-            <button type="button" disabled={pending} onClick={() => open(idle)}>
+            <button type="button" className="button button-secondary" disabled={pending} onClick={() => open(idle)}>
               ไม่ยกเลิก
             </button>
           </div>
         </div>
       ) : (
-        <form className="stack" onSubmit={submit} noValidate>
+        <form onSubmit={submit} noValidate>
           {panel.kind === 'assign' && technicianSelect('ช่าง', technicians)}
           {panel.kind === 'reassign' && (
             <>
@@ -187,7 +187,7 @@ export function StatusActions({
         </form>
       )}
       {error && (
-        <p className="error" role="alert">
+        <p className="alert alert-error" role="alert">
           {error}
         </p>
       )}

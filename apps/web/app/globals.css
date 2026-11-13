@@ -91,7 +91,9 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .stack.tight { gap: .35rem; }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
 .row.between { justify-content: space-between; }
-.row > .field { flex: 1 1 12rem; margin-bottom: 0; }
+.row > .field { flex: 1 1 12rem; }
+.row:has(> .field) { align-items: start; gap: 0 1rem; }
+.stack > .page-head { margin-bottom: 0; }
 .nowrap { white-space: nowrap; }
 
 /* App shell */
@@ -100,6 +102,7 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
   min-height: 100vh;
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
+  background: linear-gradient(to right, var(--sidebar) 15rem, var(--page) 15rem);
 }
 
 .sidebar {
@@ -171,7 +174,6 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 
 .page-head { margin-bottom: 1.5rem; }
 .page-head p { margin: 0; color: var(--muted); }
-.head-actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; }
 .eyebrow { color: var(--primary); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 
 /* Building blocks */
@@ -190,6 +192,7 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 
 .alert { margin: 0 0 1rem; padding: .75rem 1rem; border-radius: var(--radius-md); font-size: .875rem; }
 .alert:last-child { margin-bottom: 0; }
+.panel > .alert:last-child:not(:first-child) { margin-top: 1rem; }
 .alert-success { background: var(--success-soft); color: var(--success); }
 .alert-error { background: var(--danger-soft); color: var(--danger); }
 .alert-warning { background: var(--warning-soft); color: var(--warning); }
@@ -256,6 +259,7 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 .detail-grid dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .description { white-space: pre-line; overflow-wrap: anywhere; }
 .article-section { margin-top: 1.25rem; }
+.summary { margin: 0; padding: 1.25rem 1.5rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow); }
 
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .6rem; margin: 0; padding: 0; list-style: none; }
 .gallery img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--line); border-radius: .65rem; }
@@ -271,6 +275,7 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 .comments { display: grid; gap: .6rem; margin: 0 0 1.25rem; padding: 0; list-style: none; }
 .comments li { padding: .8rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); }
 .comments .when { color: var(--muted); font-size: .8125rem; }
+.comments-empty { margin-bottom: 1rem; }
 
 .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .75rem; }
 .actions:first-child { margin-top: 0; }
@@ -315,6 +320,7 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 /* Tables: a panel with rows that light up on hover */
 
 .table-wrap {
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -323,13 +329,13 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 }
 table { width: 100%; border-collapse: collapse; font-size: .875rem; }
 caption { padding: 1rem 1rem .5rem; font-size: 1.125rem; font-weight: 700; text-align: left; }
-th, td { padding: .75rem 1rem; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); }
+th, td { padding: .75rem 1rem; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); white-space: nowrap; }
 thead th { color: var(--muted); font-size: .8125rem; font-weight: 600; white-space: nowrap; background: var(--surface-soft); }
 tbody th { font-weight: 600; }
 tbody tr:last-child > * { border-bottom: 0; }
 tbody tr:hover { background: var(--surface-soft); }
 td .button { min-height: 2.75rem; }
-.ticket-subject { font-weight: 600; overflow-wrap: anywhere; }
+.ticket-subject { min-width: 12rem; font-weight: 600; overflow-wrap: anywhere; white-space: normal; }
 .ticket-table a { font-weight: 600; font-variant-numeric: tabular-nums; }
 td .stack { min-width: 12rem; }
 
@@ -337,6 +343,7 @@ td .stack { min-width: 12rem; }
 
 .guest { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
 .guest .panel { width: min(24rem, 100%); }
+.guest h1 { margin-bottom: 1rem; }
 .guest form .button { width: 100%; }
 
 /* Admin */
@@ -357,7 +364,7 @@ td .stack { min-width: 12rem; }
 /* Phones and small tablets: the sidebar becomes a top bar with a scrolling menu, and the ticket table becomes a list of cards */
 
 @media (max-width: 760px) {
-  .app-shell { display: block; }
+  .app-shell { display: block; background: none; }
   .sidebar {
     position: static;
     height: auto;

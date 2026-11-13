@@ -11,6 +11,12 @@ const TABS = [
   { tab: 'queue', label: 'คิวใบใหม่' },
 ] as const;
 
+const HEADS = {
+  reporter: { eyebrow: 'ระบบแจ้งซ่อม', title: 'ใบแจ้งซ่อมของฉัน', intro: 'ใบแจ้งซ่อมที่คุณส่ง เรียงจากใบล่าสุด' },
+  technician: { eyebrow: 'งานช่าง', title: 'ใบแจ้งซ่อม', intro: 'งานที่ได้รับมอบหมาย และใบใหม่ที่รอช่างรับ' },
+  admin: { eyebrow: 'ผู้ดูแลระบบ', title: 'ใบแจ้งซ่อม', intro: 'ใบแจ้งซ่อมทั้งหมด กรองตามสถานะได้' },
+};
+
 const href = (params: Record<string, string | undefined>) => {
   const query = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => e[1] !== undefined)).toString();
   return query ? `/tickets?${query}` : '/tickets';
@@ -25,17 +31,17 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
   const filter = tab === 'queue' ? { status: 'new' as const } : tab === 'mine' ? { assigneeId: user.id } : status ? { status } : {};
   const { items, nextCursor } = await listTickets(db, { ...filter, ...(cursor ? { cursor } : {}) });
   const keep = { tab, status };
+  const head = HEADS[role];
 
   return (
-    <div className="stack">
-      <div className="row between">
-        <h1>ใบแจ้งซ่อม</h1>
-        <Link href="/tickets/new" className="button primary">
-          แจ้งซ่อม
-        </Link>
-      </div>
+    <>
+      <header className="page-head">
+        <div className="eyebrow">{head.eyebrow}</div>
+        <h1>{head.title}</h1>
+        <p>{head.intro}</p>
+      </header>
       {tab && (
-        <nav className="tabs" aria-label="มุมมองใบแจ้งซ่อม">
+        <nav className="admin-tabs" aria-label="มุมมองใบแจ้งซ่อม">
           {TABS.map((t) => (
             <Link key={t.tab} href={href({ tab: t.tab })} aria-current={t.tab === tab ? 'page' : undefined}>
               {t.label}
@@ -44,7 +50,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         </nav>
       )}
       {role === 'admin' && (
-        <nav className="tabs" aria-label="กรองตามสถานะ">
+        <nav className="admin-tabs" aria-label="กรองตามสถานะ">
           <Link href="/tickets" aria-current={status ? undefined : 'page'}>
             ทั้งหมด
           </Link>
@@ -56,10 +62,12 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         </nav>
       )}
       <TicketTable items={items} />
-      <nav className="row between">
-        {cursor ? <Link href={href(keep)}>หน้าแรก</Link> : <span />}
-        {nextCursor && <Link href={href({ ...keep, cursor: nextCursor })}>ถัดไป</Link>}
-      </nav>
-    </div>
+      {(cursor || nextCursor) && (
+        <nav className="pager" aria-label="หน้า">
+          {cursor && <Link href={href(keep)}>หน้าแรก</Link>}
+          {nextCursor && <Link href={href({ ...keep, cursor: nextCursor })}>ถัดไป</Link>}
+        </nav>
+      )}
+    </>
   );
 }
