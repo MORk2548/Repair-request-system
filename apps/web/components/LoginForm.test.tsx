@@ -34,3 +34,19 @@ test('a successful sign-in goes to /tickets', async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
   expect(screen.queryByRole('alert')).toBeNull();
 });
+
+test('the eye button shows and hides the password', async () => {
+  const user = userEvent.setup();
+  render(<LoginForm />);
+  const password = screen.getByLabelText('รหัสผ่าน');
+  const toggle = screen.getByRole('button', { name: 'แสดงรหัสผ่าน' });
+  expect(password.getAttribute('type')).toBe('password');
+
+  await user.click(toggle);
+  expect(password.getAttribute('type')).toBe('text');
+  expect(toggle.getAttribute('aria-pressed')).toBe('true');
+
+  await user.click(toggle);
+  expect(password.getAttribute('type')).toBe('password');
+  expect(toggle.getAttribute('aria-pressed')).toBe('false');
+});

@@ -19,7 +19,7 @@ async function signIn(browser: Browser, email: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto('/login');
   await page.getByLabel('อีเมล').fill(email);
-  await page.getByLabel('รหัสผ่าน').fill(PASSWORD);
+  await page.getByLabel('รหัสผ่าน', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
   await expect(page).toHaveURL(/\/tickets/);
   return page;
@@ -144,7 +144,7 @@ test('a deactivated user cannot sign in until reactivated', async ({ browser }) 
     const page = await (await browser.newContext()).newPage();
     await page.goto('/login');
     await page.getByLabel('อีเมล').fill(DEACTIVATED);
-    await page.getByLabel('รหัสผ่าน').fill(PASSWORD);
+    await page.getByLabel('รหัสผ่าน', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
     await expect(page.getByText('อีเมลหรือรหัสผ่านไม่ถูกต้อง')).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
