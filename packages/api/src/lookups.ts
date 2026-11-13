@@ -56,6 +56,12 @@ export async function getProfile(db: Db, id: string): Promise<Profile | null> {
   return data && toProfile(data);
 }
 
+// RLS lets a user update only their own row, so another user's id changes nothing
+export async function savePushToken(db: Db, userId: string, token: string | null): Promise<void> {
+  const { error } = await db.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+  if (error) throwDbError(error);
+}
+
 export async function listTechnicians(db: Db): Promise<Technician[]> {
   const { data, error } = await db.from('technician_options').select().order('display_name');
   if (error) throwDbError(error);

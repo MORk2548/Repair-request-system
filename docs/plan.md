@@ -577,16 +577,21 @@ test('draft text survives a failed createTicket (network error) and can be resub
 ### Task 11: แอป — รายละเอียดใบ, ปุ่มเปลี่ยนสถานะ, push token
 
 **Files:**
-- Create: `apps/mobile/app/tickets/[id].tsx`, `apps/mobile/lib/push.ts`
-- Test: `apps/mobile/test/detail.test.tsx`, `apps/mobile/test/push.test.ts`
+- Create: `apps/mobile/app/tickets/[id].tsx`, `apps/mobile/components/{StatusActions,CommentList}.tsx`, `apps/mobile/lib/{push,useProfile}.ts`
+- Modify: `apps/mobile/app/_layout.tsx` (`ProfileProvider`, ลงทะเบียน push หลังล็อกอิน, แตะการแจ้งเตือน, `tickets/[id]` อยู่ใน guard), `apps/mobile/app/(tabs)/_layout.tsx` (ออกจากระบบล้าง token ก่อน), `apps/mobile/app/(tabs)/tickets.tsx` (รายการตามบทบาท), `apps/mobile/app.json` (plugin `expo-notifications`), `apps/mobile/.env.example` (`EXPO_PUBLIC_EAS_PROJECT_ID`), `packages/api/src/lookups.ts` (`savePushToken`)
+- Test: `apps/mobile/test/{detail,push,tickets,layout}.test.tsx`, `packages/api/test/lookups.test.ts`
 
 **Interfaces:**
-- Consumes: `getTicket`, `transitionTicket`, `addComment`, `ticketActions`, `VersionConflictError`
+- Consumes: `getProfile`, `getTicket`, `listTickets`, `listTechnicians`, `transitionTicket`, `reassignTicket`, `addComment`, `ticketActions`, `resolutionSchema`, `commentSchema`, `VersionConflictError`, `ForbiddenTransitionError`
 - Produces:
-  - `registerPushToken(db: Db, userId: string): Promise<'registered' | 'denied' | 'unsupported'>` — ขอสิทธิ์แจ้งเตือน, อ่าน Expo push token, บันทึกลง `profiles.expo_push_token`
-  - หน้ารายละเอียดที่ใช้กฎเดียวกับเว็บ (ปุ่มจาก `ticketActions`, ข้อความชนเวอร์ชันเหมือน Task 7); แตะการแจ้งเตือนแล้วเปิดใบที่เกี่ยวข้อง (`data.ticketId`)
+  - `savePushToken(db: Db, userId: string, token: string | null): Promise<void>` ใน `@repair/api` — เขียน `profiles.expo_push_token` ของตัวเองเท่านั้น (RLS)
+  - `registerPushToken(db: Db, userId: string): Promise<'registered' | 'denied' | 'unsupported'>` — `'unsupported'` เมื่อไม่ใช่เครื่องจริง, Expo Go บน Android (ไม่มี remote push ตั้งแต่ SDK 53) หรือไม่มี EAS project id (`extra.eas.projectId` ที่ `npx eas init` เขียน หรือ `EXPO_PUBLIC_EAS_PROJECT_ID`); Android สร้าง channel ก่อนขอสิทธิ์; ไม่ได้สิทธิ์ → `'denied'` ไม่เขียนอะไร; ไม่งั้นบันทึก Expo push token; root layout เรียกครั้งเดียวเมื่อมี session โดยไม่รอผล
+  - `signOut(db, userId)` — ล้าง token ก่อน (เครื่องที่ใช้ร่วมกันจะไม่ได้แจ้งเตือนของคนก่อน) แล้วออกจากระบบแม้ล้างไม่สำเร็จ
+  - `useNotificationTaps(signedIn)` — banner ตอนแอปเปิดอยู่; แตะแล้วเปิด `/tickets/${data.ticketId}` ทั้งตอนแอปเปิดอยู่และ cold start (รับเฉพาะ guid)
+  - `useProfile()` → `{ userId, profile }` ใช้ร่วมกันระหว่างรายการและหน้ารายละเอียด
+  - รายการตามบทบาทเหมือนเว็บ: ช่างมี "งานของฉัน" / "คิวใบใหม่", admin มีชิปสถานะ, เปิดใบด้วยการแตะแถว; หน้ารายละเอียดแสดงข้อมูลเท่าหน้าเว็บ หัวเรื่องเป็นเลขใบ แผงปุ่ม state machine เดียวกับ `StatusActions` ของเว็บ (ชนเวอร์ชัน → "มีผู้อื่นอัปเดตใบนี้แล้ว กรุณาโหลดใหม่" + ปุ่ม "โหลดใหม่"; ช่างที่ส่งต่องานกลับไปรายการ)
 
-- [ ] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**:
 
 ```ts
 test('registerPushToken returns "denied" and writes nothing when permission refused', /* … */);
@@ -595,12 +600,15 @@ test('registerPushToken saves token to profiles for the current user', /* … */
 // detail.test.tsx
 test('technician assigned to ticket sees "เริ่มงาน" on assigned ticket', /* … */);
 test('VersionConflictError shows reload message', /* … */);
+// เพิ่ม: ช่างเห็นสองมุมมองและคิวโหลด status 'new', ชิปสถานะของ admin, ไม่พบใบ, ผู้แจ้งบนใบ done ของตัวเองเห็นแค่ ปิดงาน/ขอแก้ไขใหม่,
+// เสร็จงานไม่กรอกวิธีแก้ไข, ส่งต่อไม่รวมช่างคนเดิมและต้องมีเหตุผล, ForbiddenTransitionError, ตรวจความคิดเห็น,
+// 'unsupported' บน Expo Go Android และเมื่อไม่มี project id, ออกจากระบบล้าง token ก่อน, แตะการแจ้งเตือนที่ ticketId ไม่ใช่ guid ไม่เปิดอะไร, savePushToken เขียนแถวคนอื่นไม่ได้
 ```
 
-- [ ] **Step 2: รัน** `pnpm --filter mobile test` — คาดว่า FAIL
-- [ ] **Step 3: เขียน `push.ts` และหน้ารายละเอียด**
-- [ ] **Step 4: รัน** `pnpm --filter mobile test` — คาดว่า PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(mobile): ticket detail, status actions and push registration"`
+- [x] **Step 2: รัน** `corepack pnpm --filter mobile test` — คาดว่า FAIL
+- [x] **Step 3: เขียน `push.ts`, `useProfile.ts`, หน้ารายละเอียด และรายการตามบทบาท**
+- [x] **Step 4: รัน** `corepack pnpm --filter mobile test` และ `corepack pnpm test:db` — คาดว่า PASS; `expo export` ทั้ง ios และ android ต้อง bundle ได้ และ `npx expo-doctor` ผ่าน; push ทดสอบบนเครื่องจริงได้หลังมีบัญชี Expo และ project id เท่านั้น (Task 12)
+- [x] **Step 5: Commit** `git commit -m "feat(mobile): ticket detail, status actions and push registration"`
 
 ---
 
@@ -618,7 +626,7 @@ test('VersionConflictError shows reload message', /* … */);
 - [ ] **Step 2: รัน** `pnpm exec playwright test` กับ Supabase local (ใช้บัญชี dev จาก `supabase/seed.sql`) — คาดว่า FAIL
 - [ ] **Step 3: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
 
-  จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`, `NOTIFY_WEBHOOK_SECRET` เป็นค่าสุ่มยาว) ด้วย `supabase secrets set`; ต่อ trigger `notify_ticket_event` ใน project จริงด้วย Vault secrets สองตัวผ่าน SQL editor: `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');` และ `select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');` (seed.sql ไม่ถูกโหลดใน production; ถ้าไม่ตั้ง trigger จะไม่ส่งอะไรเลย); deploy ฟังก์ชันพร้อม `verify_jwt = false` ตาม `config.toml`; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
+  จากนั้น ตั้งค่า secrets ของ Edge Function (`RESEND_API_KEY`, `EMAIL_FROM`, `WEB_BASE_URL`, `NOTIFY_WEBHOOK_SECRET` เป็นค่าสุ่มยาว) ด้วย `supabase secrets set`; ต่อ trigger `notify_ticket_event` ใน project จริงด้วย Vault secrets สองตัวผ่าน SQL editor: `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');` และ `select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');` (seed.sql ไม่ถูกโหลดใน production; ถ้าไม่ตั้ง trigger จะไม่ส่งอะไรเลย); deploy ฟังก์ชันพร้อม `verify_jwt = false` ตาม `config.toml`; ยืนยันโดเมนผู้ส่งกับ Resend (SPF/DKIM); แอป: สมัครบัญชี Expo แล้ว `npx eas init` ใน `apps/mobile` (เขียน `extra.eas.projectId` ลง `app.json`) — ไม่มี project id แอปจะข้ามการลงทะเบียน push; push บน Android ต้องอัปโหลด FCM credentials (ไฟล์ service account ของ Firebase) ด้วย `eas credentials` และ push บน iOS ต้องมี Apple Developer account ให้ EAS สร้าง APNs key; deploy** ด้วย `supabase db push`, `supabase functions deploy notify-ticket-event`, `vercel deploy --prod`, `eas build --profile preview`
 - [ ] **Step 4: รัน** `pnpm exec playwright test` — คาดว่า PASS; แล้วลองบนมือถือจริงหนึ่งเครื่อง: สร้างใบ → admin มอบหมาย → ได้ push และอีเมลภายใน 1 นาที (ตรวจว่าอีเมลไม่เข้าสแปม)
 - [ ] **Step 5: Commit** `git commit -m "chore: e2e smoke test and deployment docs"`
 

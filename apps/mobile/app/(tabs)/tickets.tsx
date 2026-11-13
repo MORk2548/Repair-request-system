@@ -1,14 +1,29 @@
-import { listTickets } from '@repair/api';
-import { PRIORITY_LABELS, STATUS_LABELS, formatThaiDateTime, type Ticket } from '@repair/core';
+import { listTickets, type Profile } from '@repair/api';
+import { PRIORITY_LABELS, STATUS_LABELS, TICKET_STATUSES, formatThaiDateTime, type Ticket, type TicketStatus } from '@repair/core';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
-import { Alert, Button, colors, styles } from '../../components/ui';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { Alert, Button, Choices, colors, styles } from '../../components/ui';
 import { db } from '../../lib/supabase';
+import { useProfile } from '../../lib/useProfile';
 
-function TicketRow({ t }: { t: Ticket }) {
+type Segment = 'mine' | 'queue';
+type StatusFilter = TicketStatus | 'all';
+
+const VIEWS = [
+  { value: 'mine', label: 'งานของฉัน' },
+  { value: 'queue', label: 'คิวใบใหม่' },
+] as const;
+const STATUS_FILTERS = [{ value: 'all' as const, label: 'ทั้งหมด' }, ...TICKET_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))];
+
+function TicketRow({ t, onPress }: { t: Ticket; onPress: () => void }) {
   return (
-    <View accessible style={{ padding: 12, gap: 4, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${t.ticketNo} ${t.title} ${STATUS_LABELS[t.status]}`}
+      onPress={onPress}
+      style={{ padding: 12, gap: 4, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+    >
       <Text style={{ fontWeight: '700', color: colors.text }}>{t.ticketNo}</Text>
       <Text style={{ fontSize: 16, color: colors.text }}>{t.title}</Text>
       <View style={styles.row}>
@@ -16,33 +31,57 @@ function TicketRow({ t }: { t: Ticket }) {
         <Text style={{ color: t.priority === 'urgent' ? colors.error : colors.muted }}>{PRIORITY_LABELS[t.priority]}</Text>
         <Text style={styles.hint}>{formatThaiDateTime(t.createdAt)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 export default function TicketsScreen() {
+  const { profile } = useProfile();
+  if (profile === undefined) return <ActivityIndicator style={{ flex: 1 }} size="large" accessibilityLabel="กำลังโหลด" />;
+  if (profile === null) {
+    return (
+      <View style={styles.screen}>
+        <Alert>โหลดข้อมูลผู้ใช้ไม่สำเร็จ กรุณาออกจากระบบแล้วเข้าใหม่</Alert>
+      </View>
+    );
+  }
+  return <TicketList me={profile} />;
+}
+
+function TicketList({ me }: { me: Profile }) {
   const router = useRouter();
+  const [view, setView] = useState<Segment>('mine');
+  const [status, setStatus] = useState<StatusFilter>('all');
   const [items, setItems] = useState<Ticket[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
   const loadingMore = useRef(false);
+  // a page that arrives after the filter changed belongs to the old list
+  const generation = useRef(0);
+
+  const filter = useMemo(() => {
+    if (me.role === 'technician') return view === 'queue' ? { status: 'new' as const } : { assigneeId: me.id };
+    return me.role === 'admin' && status !== 'all' ? { status } : {};
+  }, [me, view, status]);
 
   const reload = useCallback(async () => {
+    const mine = ++generation.current;
     try {
-      const page = await listTickets(db, {});
+      const page = await listTickets(db, filter);
+      if (mine !== generation.current) return;
       setItems(page.items);
       setCursor(page.nextCursor);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (mine === generation.current) setFailed(true);
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [filter]);
 
-  // back from the new-ticket screen, the list shows the ticket just filed
+  // back from the new-ticket or detail screen, the list shows what changed
   useFocusEffect(
     useCallback(() => {
       void reload();
@@ -58,12 +97,14 @@ export default function TicketsScreen() {
   async function loadMore() {
     if (!cursor || loadingMore.current) return;
     loadingMore.current = true;
+    const mine = generation.current;
     try {
-      const page = await listTickets(db, { cursor });
+      const page = await listTickets(db, { ...filter, cursor });
+      if (mine !== generation.current) return;
       setItems((prev) => [...prev, ...page.items]);
       setCursor(page.nextCursor);
     } catch {
-      setFailed(true);
+      if (mine === generation.current) setFailed(true);
     } finally {
       loadingMore.current = false;
     }
@@ -73,13 +114,15 @@ export default function TicketsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ padding: 16, paddingBottom: 0, gap: 8 }}>
         <Button label="แจ้งซ่อม" onPress={() => router.push('/tickets/new')} />
+        {me.role === 'technician' ? <Choices label="มุมมอง" options={VIEWS} value={view} onChange={setView} /> : null}
+        {me.role === 'admin' ? <Choices label="สถานะ" options={STATUS_FILTERS} value={status} onChange={setStatus} /> : null}
         {failed ? <Alert>โหลดรายการไม่สำเร็จ ดึงลงเพื่อลองอีกครั้ง</Alert> : null}
       </View>
       <FlatList
         testID="ticket-list"
         data={items}
         keyExtractor={(t) => t.id}
-        renderItem={({ item }) => <TicketRow t={item} />}
+        renderItem={({ item }) => <TicketRow t={item} onPress={() => router.push(`/tickets/${item.id}`)} />}
         contentContainerStyle={{ padding: 16, gap: 8 }}
         refreshing={refreshing}
         onRefresh={() => void refresh()}
