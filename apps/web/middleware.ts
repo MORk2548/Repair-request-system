@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
-import { getProfile, type Database } from '@repair/api';
+import type { Database } from '@repair/api';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAnonKey, supabaseUrl } from './lib/env';
 
@@ -25,7 +25,6 @@ export async function middleware(request: NextRequest) {
   let target: string | null = null;
   if (!user) target = PUBLIC_PATHS.includes(path) ? null : '/login';
   else if (path === '/' || path === '/login') target = '/tickets';
-  else if ((path === '/admin' || path.startsWith('/admin/')) &&(await getProfile(supabase, user.id))?.role !== 'admin') target = '/tickets';
   if (!target) return response;
 
   const redirect = NextResponse.redirect(new URL(target, request.url));
