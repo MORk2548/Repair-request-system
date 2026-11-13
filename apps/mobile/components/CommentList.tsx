@@ -3,7 +3,7 @@ import { commentSchema, formatThaiDateTime } from '@repair/core';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { db } from '../lib/supabase';
-import { Alert, Button, Field, colors, styles } from './ui';
+import { Alert, Button, Field, useUi } from './ui';
 
 export function CommentList({
   ticketId,
@@ -16,6 +16,7 @@ export function CommentList({
   people: Record<string, string>;
   onAdded: () => void;
 }) {
+  const { colors, styles } = useUi();
   const busy = useRef(false);
   const [body, setBody] = useState('');
   const [invalid, setInvalid] = useState<string | undefined>(undefined);
@@ -49,7 +50,7 @@ export function CommentList({
       </Text>
       {comments.length === 0 ? <Text style={styles.hint}>ยังไม่มีความคิดเห็น</Text> : null}
       {comments.map((c) => (
-        <View key={c.id} style={{ gap: 2, padding: 10, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+        <View key={c.id} style={[styles.card, { gap: 2, padding: 10, borderRadius: 12 }]}>
           <Text style={styles.hint}>
             <Text style={{ fontWeight: '700', color: colors.text }}>{people[c.authorId] ?? 'ไม่ทราบชื่อ'}</Text> {formatThaiDateTime(c.createdAt)}
           </Text>

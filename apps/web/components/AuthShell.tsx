@@ -1,6 +1,8 @@
+import type { ThemeId } from '@repair/core';
 import type { ReactNode } from 'react';
+import { ThemePicker } from './ThemePicker';
 
-export function AuthShell({ children }: { children: ReactNode }) {
+export function AuthShell({ theme, children }: { theme: ThemeId; children: ReactNode }) {
   return (
     <div className="auth">
       <main className="login">
@@ -9,6 +11,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           ระบบแจ้งซ่อม
         </p>
         {children}
+        <ThemePicker current={theme} />
       </main>
     </div>
   );

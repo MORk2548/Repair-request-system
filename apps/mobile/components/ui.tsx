@@ -1,9 +1,85 @@
-import type { ReactNode } from 'react';
+import { withAlpha, type Theme, type TicketStatus } from '@repair/core';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useTheme } from '../lib/theme';
 
-export const colors = { primary: '#1d4ed8', text: '#111827', muted: '#6b7280', border: '#d1d5db', error: '#b91c1c', bg: '#f9fafb', card: '#ffffff' };
+function paletteOf(t: Theme) {
+  return {
+    primary: t.accentA,
+    accentB: t.accentB,
+    onAccent: t.onAccent,
+    link: t.link,
+    text: t.text,
+    muted: t.muted,
+    border: withAlpha(t.text, 0.16),
+    error: t.danger,
+    bg: t.bg,
+    // translucent so the aurora shows through like the web's glass cards
+    card: withAlpha(t.card, t.scheme === 'dark' ? 0.72 : 0.78),
+    field: withAlpha(t.bg, t.scheme === 'dark' ? 0.6 : 0.7),
+    surface: withAlpha(t.text, 0.06),
+    status: t.status,
+  };
+}
+
+export type Palette = ReturnType<typeof paletteOf>;
+
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    // Android draws edge to edge, so a screen without a navigator header or tab bar must keep clear of the status and navigation bars itself
+    safe: { flex: 1 },
+    screen: { flexGrow: 1, padding: 16, gap: 12 },
+    field: { gap: 6 },
+    label: { fontSize: 16, fontWeight: '600', color: c.text },
+    title: { fontSize: 24, fontWeight: '700', color: c.text },
+    text: { fontSize: 16, color: c.text },
+    input: { minHeight: 44, borderWidth: 1, borderColor: c.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, backgroundColor: c.field },
+    invalid: { borderColor: c.error },
+    error: { color: c.error, fontSize: 15 },
+    hint: { color: c.muted, fontSize: 14 },
+    card: { gap: 6, padding: 14, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.border },
+    button: { minHeight: 48, minWidth: 44, borderRadius: 8, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    primary: {},
+    secondary: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+    disabled: { opacity: 0.5 },
+    pressed: { opacity: 0.85 },
+    primaryText: { color: c.onAccent, fontSize: 16, fontWeight: '700' },
+    secondaryText: { color: c.text, fontSize: 16, fontWeight: '600' },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: c.border, justifyContent: 'center', backgroundColor: c.surface },
+    chipOn: { backgroundColor: c.primary, borderColor: c.primary },
+    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    notice: { gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.status.inProgress, 0.45), backgroundColor: withAlpha(c.status.inProgress, 0.12) },
+  });
+}
+
+export function statusColor(c: Palette, status: TicketStatus): string {
+  switch (status) {
+    case 'new':
+      return c.status.new;
+    case 'assigned':
+      return c.status.assigned;
+    case 'in_progress':
+      return c.status.inProgress;
+    case 'done':
+      return c.status.done;
+    default:
+      return c.muted;
+  }
+}
+
+/** the current theme's colors and styles; recomputed only when the theme changes */
+export function useUi() {
+  const { theme } = useTheme();
+  return useMemo(() => {
+    const colors = paletteOf(theme);
+    return { colors, styles: makeStyles(colors), scheme: theme.scheme };
+  }, [theme]);
+}
 
 export function Alert({ children }: { children: ReactNode }) {
+  const { styles } = useUi();
   return (
     <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
       {children}
@@ -13,10 +89,19 @@ export function Alert({ children }: { children: ReactNode }) {
 
 // the error is also the input's hint, so a screen reader reads it when the field gets focus
 export function Field({ label, error, style, ...input }: TextInputProps & { label: string; error?: string | undefined }) {
+  const { styles, colors, scheme } = useUi();
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput accessibilityLabel={label} accessibilityHint={error} style={[styles.input, error ? styles.invalid : null, style]} {...input} />
+      <TextInput
+        accessibilityLabel={label}
+        accessibilityHint={error}
+        placeholderTextColor={colors.muted}
+        selectionColor={colors.primary}
+        keyboardAppearance={scheme}
+        style={[styles.input, error ? styles.invalid : null, style]}
+        {...input}
+      />
       {error ? <Alert>{error}</Alert> : null}
     </View>
   );
@@ -35,6 +120,7 @@ export function Button({
   kind?: 'primary' | 'secondary';
   accessibilityLabel?: string;
 }) {
+  const { styles, colors } = useUi();
   return (
     <Pressable
       accessibilityRole="button"
@@ -42,8 +128,9 @@ export function Button({
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.button, kind === 'primary' ? styles.primary : styles.secondary, disabled ? styles.disabled : null]}
+      style={({ pressed }) => [styles.button, kind === 'primary' ? styles.primary : styles.secondary, disabled ? styles.disabled : pressed ? styles.pressed : null]}
     >
+      {kind === 'primary' ? <LinearGradient colors={[colors.primary, colors.accentB]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} /> : null}
       <Text style={kind === 'primary' ? styles.primaryText : styles.secondaryText}>{label}</Text>
     </Pressable>
   );
@@ -63,6 +150,7 @@ export function Choices<T extends string | number>({
   onChange: (v: T) => void;
   error?: string | undefined;
 }) {
+  const { styles } = useUi();
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -84,26 +172,3 @@ export function Choices<T extends string | number>({
     </View>
   );
 }
-
-export const styles = StyleSheet.create({
-  // Android draws edge to edge, so a screen without a navigator header or tab bar must keep clear of the status and navigation bars itself
-  safe: { flex: 1, backgroundColor: colors.bg },
-  screen: { flexGrow: 1, padding: 16, gap: 12, backgroundColor: colors.bg },
-  field: { gap: 6 },
-  label: { fontSize: 16, fontWeight: '600', color: colors.text },
-  input: { minHeight: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: colors.text, backgroundColor: colors.card },
-  invalid: { borderColor: colors.error },
-  error: { color: colors.error, fontSize: 15 },
-  hint: { color: colors.muted, fontSize: 14 },
-  button: { minHeight: 48, minWidth: 44, borderRadius: 8, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primary },
-  disabled: { opacity: 0.5 },
-  primaryText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-  secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.primary, justifyContent: 'center', backgroundColor: colors.card },
-  chipOn: { backgroundColor: colors.primary },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  notice: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#fef3c7' },
-});

@@ -3,7 +3,7 @@ import { resolutionSchema, ticketActions, type Role, type Ticket, type TicketAct
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { db } from '../lib/supabase';
-import { Alert, Button, Choices, Field, styles } from './ui';
+import { Alert, Button, Choices, Field, useUi } from './ui';
 
 type Panel = 'idle' | 'assign' | 'done' | 'reassign' | 'cancel' | 'conflict';
 type FieldName = 'assignee' | 'resolution' | 'reason';
@@ -22,6 +22,7 @@ export function StatusActions({
   onChanged: () => void;
   onLeave: () => void;
 }) {
+  const { styles } = useUi();
   const busy = useRef(false);
   const [panel, setPanel] = useState<Panel>('idle');
   const [pending, setPending] = useState(false);

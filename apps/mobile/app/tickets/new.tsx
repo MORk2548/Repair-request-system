@@ -3,8 +3,8 @@ import { MAX_PHOTOS, PRIORITIES, PRIORITY_LABELS, createTicketSchema, type Prior
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Button, Choices, Field, colors, styles } from '../../components/ui';
+import { Screen } from '../../components/Screen';
+import { Alert, Button, Choices, Field, useUi } from '../../components/ui';
 import { pickPhotos, preparePhoto } from '../../lib/photos';
 import { db } from '../../lib/supabase';
 import { useTicketSubmit } from '../../lib/useTicketSubmit';
@@ -16,6 +16,7 @@ const SEARCH_DELAY_MS = 300;
 const priorityOptions = PRIORITIES.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }));
 
 export default function NewTicketScreen() {
+  const { colors, styles } = useUi();
   const router = useRouter();
   const form = useTicketSubmit(() => router.back());
   const [categories, setCategories] = useState<Category[]>([]);
@@ -88,7 +89,7 @@ export default function NewTicketScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+    <Screen edges={['bottom', 'left', 'right']}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       {/* on iOS the native header is translucent and floats over the screen; this makes the scroll view start below it */}
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -122,9 +123,9 @@ export default function NewTicketScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${m.assetTag} ${m.name}`}
               onPress={() => pickEquipment(m)}
-              style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+              style={[styles.card, { minHeight: 44, justifyContent: 'center', paddingVertical: 8, borderRadius: 8 }]}
             >
-              <Text>
+              <Text style={styles.text}>
                 <Text style={{ fontWeight: '700' }}>{m.assetTag}</Text> {m.name}
               </Text>
             </Pressable>
@@ -164,6 +165,6 @@ export default function NewTicketScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }

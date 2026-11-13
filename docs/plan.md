@@ -698,6 +698,28 @@ test('VersionConflictError shows reload message', /* … */);
 
 ---
 
+### Task 12.7: แอปมือถือใช้ธีม AURORA และผู้ใช้เลือกสีธีมได้ (เว็บและแอป)
+
+ธีมสีมี 4 ชุด: ออโรรา (ค่าเริ่มต้น, เขียว-ม่วง), สนธยา (ส้ม-ชมพู), มหาสมุทร (ฟ้า-คราม) และกลางวัน (โทนสว่าง) ชุดสีอยู่ที่เดียวคือ `packages/core/src/theme.ts` (`THEMES`, `THEME_IDS`, `DEFAULT_THEME`, `parseThemeId`, `contrastRatio`, `withAlpha`) เว็บและแอปอ่านจากที่นี่ การเลือกธีมเก็บต่อเครื่อง ไม่เก็บในฐานข้อมูล: เว็บเก็บใน cookie `theme` (root layout อ่านแล้วใส่ `data-theme`/`data-scheme` บน `<html>` จึงไม่กระพริบตอนโหลด), แอปเก็บใน AsyncStorage key `theme`
+
+- เว็บ: root layout สร้างตัวแปร CSS ของทุกธีมจาก `THEMES`; `globals.css` ใช้แต่ตัวแปร (`color-mix`) ไม่มีค่าสีตายตัว; `ThemePicker` (radio ของจริง ซ่อนไว้ แสดงเป็นวงสี) อยู่ที่แถบหัวและใต้ฟอร์มหน้าเข้าสู่ระบบ
+- แอป: `lib/theme.tsx` (`ThemeProvider`, `useTheme`, `useStyles`; นอก provider ได้ธีมเริ่มต้น เทสต์เดิมจึงไม่ต้องห่อ), `components/Screen.tsx` วาดพื้นและแถบแสงออโรราด้วย `expo-linear-gradient` (หยุดเคลื่อนไหวเมื่อเปิด "ลดการเคลื่อนไหว"), ปุ่มหลักไล่สี, การ์ดโปร่งแสง, header/tab bar/status bar ตามธีม; เลือกธีมได้ที่แท็บ "ตั้งค่า" และใต้ฟอร์มหน้าเข้าสู่ระบบ
+
+**Files:**
+- Create: `packages/core/src/theme.ts`, `packages/core/test/theme.test.ts`, `apps/web/components/ThemePicker.tsx`, `apps/web/components/ThemePicker.test.tsx`, `apps/web/lib/theme.ts`, `apps/mobile/lib/theme.tsx`, `apps/mobile/components/Screen.tsx`, `apps/mobile/components/ThemePicker.tsx`, `apps/mobile/app/(tabs)/settings.tsx`, `apps/mobile/test/theme.test.tsx`
+- Modify: `packages/core/src/index.ts`, `apps/web/app/layout.tsx`, `apps/web/app/(app)/layout.tsx`, `apps/web/components/AuthShell.tsx`, `apps/web/app/globals.css`, `apps/mobile/components/ui.tsx` และทุกหน้าจอของแอปที่ใช้ `colors`/`styles`
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**
+  - core `theme.test.ts`: `parseThemeId` คืนค่าเริ่มต้นเมื่อค่าไม่รู้จัก; ทุกธีมมีชื่อไทย; ทุกธีมผ่าน 4.5:1 สำหรับ text/muted/link/danger/สีสถานะ บนพื้นและการ์ด และ `onAccent` บนสี accent ทั้งสอง
+  - web `ThemePicker.test.tsx`: มี radio 4 อันตามชื่อไทย อันปัจจุบันถูกเลือก; กดอันอื่นแล้ว `<html data-theme>` เปลี่ยนและ cookie มี `theme=<id>`
+  - mobile `theme.test.tsx`: `ThemeProvider` อ่านธีมที่บันทึกไว้; กดเลือกใน `ThemePicker` แล้วบันทึกลง AsyncStorage และ radio ที่เลือกเปลี่ยน
+- [x] **Step 2: รัน** `corepack pnpm test` — คาดว่า FAIL
+- [x] **Step 3: เขียน core, เว็บ แล้วแอป**
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm --filter web build`, `expo export --platform android` — คาดว่า PASS; ดูเว็บทุกธีมที่ 375px/1280px และดูแอปผ่าน `expo export --platform web` ไม่ได้ (แอปไม่มี web target) จึงให้ผู้ใช้ลองบน Expo Go
+- [x] **Step 5: Commit** `git commit -m "feat: selectable color themes on web and mobile"`
+
+---
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER

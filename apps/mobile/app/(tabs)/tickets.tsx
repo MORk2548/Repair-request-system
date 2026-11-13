@@ -3,7 +3,8 @@ import { PRIORITY_LABELS, STATUS_LABELS, TICKET_STATUSES, formatThaiDateTime, ty
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
-import { Alert, Button, Choices, colors, styles } from '../../components/ui';
+import { Screen } from '../../components/Screen';
+import { Alert, Button, Choices, statusColor, useUi } from '../../components/ui';
 import { db } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 
@@ -17,17 +18,18 @@ const VIEWS = [
 const STATUS_FILTERS = [{ value: 'all' as const, label: 'ทั้งหมด' }, ...TICKET_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))];
 
 function TicketRow({ t, onPress }: { t: Ticket; onPress: () => void }) {
+  const { colors, styles } = useUi();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${t.ticketNo} ${t.title} ${STATUS_LABELS[t.status]}`}
       onPress={onPress}
-      style={{ padding: 12, gap: 4, borderRadius: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+      style={[styles.card, { gap: 4 }]}
     >
       <Text style={{ fontWeight: '700', color: colors.text }}>{t.ticketNo}</Text>
       <Text style={{ fontSize: 16, color: colors.text }}>{t.title}</Text>
       <View style={styles.row}>
-        <Text style={{ color: colors.primary }}>{STATUS_LABELS[t.status]}</Text>
+        <Text style={{ color: statusColor(colors, t.status), fontWeight: '600' }}>{STATUS_LABELS[t.status]}</Text>
         <Text style={{ color: t.priority === 'urgent' ? colors.error : colors.muted }}>{PRIORITY_LABELS[t.priority]}</Text>
         <Text style={styles.hint}>{formatThaiDateTime(t.createdAt)}</Text>
       </View>
@@ -36,8 +38,9 @@ function TicketRow({ t, onPress }: { t: Ticket; onPress: () => void }) {
 }
 
 export default function TicketsScreen() {
+  const { colors, styles } = useUi();
   const { profile } = useProfile();
-  if (profile === undefined) return <ActivityIndicator style={{ flex: 1 }} size="large" accessibilityLabel="กำลังโหลด" />;
+  if (profile === undefined) return <ActivityIndicator style={{ flex: 1 }} size="large" color={colors.primary} accessibilityLabel="กำลังโหลด" />;
   if (profile === null) {
     return (
       <View style={styles.screen}>
@@ -49,6 +52,7 @@ export default function TicketsScreen() {
 }
 
 function TicketList({ me }: { me: Profile }) {
+  const { colors, styles } = useUi();
   const router = useRouter();
   const [view, setView] = useState<Segment>('mine');
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -111,7 +115,7 @@ function TicketList({ me }: { me: Profile }) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <Screen edges={[]}>
       <View style={{ padding: 16, paddingBottom: 0, gap: 8 }}>
         <Button label="แจ้งซ่อม" onPress={() => router.push('/tickets/new')} />
         {me.role === 'technician' ? <Choices label="มุมมอง" options={VIEWS} value={view} onChange={setView} /> : null}
@@ -130,6 +134,6 @@ function TicketList({ me }: { me: Profile }) {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={loaded && !failed ? <Text style={[styles.hint, { textAlign: 'center' }]}>ยังไม่มีใบแจ้งซ่อม</Text> : undefined}
       />
-    </View>
+    </Screen>
   );
 }
