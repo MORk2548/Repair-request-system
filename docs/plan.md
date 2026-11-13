@@ -644,7 +644,7 @@ test('VersionConflictError shows reload message', /* … */);
 
 - [x] **Step 1: เพิ่ม `.env.example`, README;** seed (`supabase/seed.sql`) ย้ายไปทำใน Task 6 แล้วเพื่อให้ใช้เว็บได้ตั้งแต่ตอนนั้น; README อ้างรหัสผ่าน dev จากหัว `seed.sql`
 - [x] **Step 2: deploy** ด้วย `vercel deploy --prod` พร้อม `NEXT_PUBLIC_SUPABASE_URL` และ `NEXT_PUBLIC_SUPABASE_ANON_KEY` ของ project จริง; ตั้ง `WEB_BASE_URL` ของ Edge Function เป็น URL ของ Vercel และเพิ่ม `<url>/auth/confirm` ใน redirect URLs ของ Auth (2026-11-13: https://repair-request-system-ten.vercel.app, Root Directory `apps/web`, คีย์ `sb_publishable_`)
-- [ ] **Step 3: ตรวจบนเว็บจริง** ล็อกอิน admin → เชิญผู้ใช้ → ลิงก์ในอีเมลพาไป `/set-password` บนโดเมน Vercel
+- [x] **Step 3: ตรวจบนเว็บจริง** ล็อกอิน admin → เชิญผู้ใช้ → ลิงก์ในอีเมลพาไป `/set-password` บนโดเมน Vercel
 - [x] **Step 4: Commit** `git commit -m "chore: deployment docs"`
 
 ---
