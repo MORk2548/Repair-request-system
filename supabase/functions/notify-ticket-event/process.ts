@@ -10,6 +10,8 @@ export type Deps = {
   getContact(userId: string): Promise<{ pushToken: string | null; email: string | null } | null>;
   sendPush(token: string, m: PushMessage): Promise<void>;
   sendEmail(to: string, mail: Email, idempotencyKey: string): Promise<void>;
+  // one call per event with every recipient; must ignore rows that already exist so a re-delivered event adds nothing
+  saveInbox(eventId: string, userIds: string[]): Promise<void>;
   webBaseUrl: string;
   emailEnabled: boolean;
 };
@@ -17,7 +19,7 @@ export type Deps = {
 // reporterId and assigneeId are the ticket's people when the event happened; the ticket may have moved on since
 export type TicketEvent = { id: string; ticketId: string; actorId: string | null; toStatus: TicketStatus; reporterId: string; assigneeId: string | null };
 type ChannelCounts = { sent: number; failed: number; skipped: number };
-export type Counts = { push: ChannelCounts; email: ChannelCounts };
+export type Counts = { push: ChannelCounts; email: ChannelCounts; inbox: ChannelCounts };
 type Outcome = keyof ChannelCounts;
 type Outcomes = { push: Outcome; email: Outcome };
 
@@ -43,13 +45,23 @@ async function notifyRecipient(eventId: string, userId: string, push: PushMessag
 }
 
 export async function processEvent(e: TicketEvent, deps: Deps): Promise<Counts> {
-  const counts: Counts = { push: { sent: 0, failed: 0, skipped: 0 }, email: { sent: 0, failed: 0, skipped: 0 } };
+  const counts: Counts = {
+    push: { sent: 0, failed: 0, skipped: 0 },
+    email: { sent: 0, failed: 0, skipped: 0 },
+    inbox: { sent: 0, failed: 0, skipped: 0 },
+  };
   const ticket = await deps.loadTicket(e.ticketId);
   if (!ticket) return counts;
   const staff = await deps.listStaffIds();
   const push = { ...messageFor(e.toStatus, ticket.ticketNo), ticketId: ticket.id };
   const mail = buildEmail(e.toStatus, ticket, deps.webBaseUrl);
-  const results = await Promise.allSettled(recipientsFor(e, e, staff).map((id) => notifyRecipient(e.id, id, push, mail, deps)));
+  const recipients = recipientsFor(e, e, staff);
+  // the inbox row is independent of push and email: a failure here must not stop them, and the other way round
+  const [inbox, results] = await Promise.all([
+    recipients.length === 0 ? 'skipped' : attempt(() => deps.saveInbox(e.id, recipients), `inbox for event ${e.id}`),
+    Promise.allSettled(recipients.map((id) => notifyRecipient(e.id, id, push, mail, deps))),
+  ] as const);
+  if (inbox !== 'skipped') counts.inbox[inbox] = recipients.length;
   for (const r of results) {
     if (r.status === 'rejected') console.error('notify recipient', r.reason);
     const o: Outcomes = r.status === 'fulfilled' ? r.value : { push: 'failed', email: 'failed' };
