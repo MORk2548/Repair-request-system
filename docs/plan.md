@@ -787,6 +787,30 @@ Task 13 แจ้งเตือนได้เฉพาะตอนเปิด
 ---
 
 
+### Task 15: ลบรูปของใบที่ปิดงานเกิน 1 เดือนอัตโนมัติ และปุ่ม "ลบใบแจ้งซ่อม" ของ admin
+
+Storage ฟรีของ Supabase มี 1 GB และรูปคือสิ่งที่กินพื้นที่ งานนี้ลบรูปของใบที่ปิดงานไปแล้วเกิน 1 เดือน โดยใบ ประวัติ และรายงานยังอยู่ครบ และให้ admin ลบใบที่แจ้งผิดหรือแจ้งซ้ำได้ทีละใบ
+
+**Data shape:** ไม่มีตารางใหม่ "ใบที่ปิดงานเมื่อไร" คือเวลาของ event ล่าสุดที่ `to_status = 'closed'` ของใบที่สถานะยังเป็น `closed` (ปิดแล้วเปลี่ยนต่อไม่ได้)
+
+- `expired_closed_photos(p_days, p_limit)` คืน `(id, storage_path)` ของรูปที่ครบกำหนด เรียกได้เฉพาะ service role
+- Edge Function `purge-photos` (`verify_jwt = false`, ตรวจ header `x-webhook-secret` เหมือน `notify-ticket-event`) ลบไฟล์ใน Storage ก่อน แล้วจึงลบแถว `ticket_attachments` ทีละชุด รันซ้ำได้ เพราะการลบไฟล์ที่ไม่มีแล้วไม่ทำอะไร
+- pg_cron เรียก `request_photo_purge()` ทุกวันเวลา 02:00 น. (เวลาไทย) ซึ่ง post ไปที่ Vault secret `purge_function_url` ถ้าไม่มี secret ก็ไม่ทำอะไร
+- RPC `delete_ticket(p_ticket_id)` เฉพาะ admin ที่ active ลบใบ (ประวัติ ความคิดเห็น รูป และแจ้งเตือนถูกลบตาม) ปรับสถานะอุปกรณ์ด้วย `sync_equipment_status` และคืน path ของรูป เพื่อให้ client ลบไฟล์ต่อ นโยบาย Storage ให้ admin ลบได้เฉพาะไฟล์ที่ไม่ได้ผูกกับใบใดแล้ว
+
+**Files:**
+- Create: `supabase/migrations/0012_ticket_delete_photo_purge.sql`, `supabase/tests/ticket_delete.sql`, `supabase/functions/purge-photos/{index.ts,handler.ts,handler.test.ts,deno.json}`, `packages/api/test/deleteTicket.test.ts`, `apps/web/components/DeleteTicket.tsx` (และเทสต์)
+- Modify: `supabase/config.toml`, `supabase/seed.sql`, `packages/api/src/{tickets.ts,errors.ts,database.types.ts}`, `apps/web/app/(app)/tickets/[id]/page.tsx`, `README.md`, `AGENTS.md`
+
+- [ ] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: ช่างและผู้แจ้งเรียก `delete_ticket` ไม่ได้, admin ลบแล้วแถวที่เกี่ยวข้องหาย, อุปกรณ์ที่กำลังซ่อมกลับเป็นใช้งาน, `expired_closed_photos` คืนเฉพาะรูปของใบที่ปิดเกินกำหนด, client เรียกไม่ได้; handler: ไม่มี secret ได้ 401, ลบไฟล์ก่อนแถว, ไฟล์ลบไม่สำเร็จแล้วไม่ลบแถว
+- [ ] **Step 2: migration, Edge Function, api `deleteTicket(db, id)`**
+- [ ] **Step 3: เว็บ** หน้าใบแจ้งซ่อมของ admin มีปุ่ม "ลบใบแจ้งซ่อม" ที่ต้องกดยืนยันอีกครั้ง ลบแล้วกลับไปหน้ารายการ
+- [ ] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` และลองในเบราว์เซอร์
+- [ ] **Step 5: ขึ้น cloud** `supabase db push --remote`, `supabase functions deploy purge-photos --remote`, สร้าง Vault secret `purge_function_url` (ผู้ใช้อนุมัติก่อน)
+- [ ] **Step 6: Commit**
+
+---
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER
