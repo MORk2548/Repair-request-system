@@ -799,7 +799,7 @@ Storage ฟรีของ Supabase มี 1 GB และรูปคือส�
 - RPC `delete_ticket(p_ticket_id)` เฉพาะ admin ที่ active ลบใบ (ประวัติ ความคิดเห็น รูป และแจ้งเตือนถูกลบตาม) ปรับสถานะอุปกรณ์ด้วย `sync_equipment_status` และคืน path ของรูป เพื่อให้ client ลบไฟล์ต่อ นโยบาย Storage ให้ admin ลบได้เฉพาะไฟล์ที่ไม่ได้ผูกกับใบใดแล้ว
 
 **Files:**
-- Create: `supabase/migrations/0012_ticket_delete_photo_purge.sql`, `supabase/tests/ticket_delete.sql`, `supabase/functions/purge-photos/{index.ts,handler.ts,handler.test.ts,deno.json}`, `packages/api/test/deleteTicket.test.ts`, `apps/web/components/DeleteTicket.tsx` (และเทสต์)
+- Create: `supabase/migrations/0012_ticket_delete_photo_purge.sql`, `supabase/tests/ticket_delete.sql`, `supabase/functions/purge-photos/{index.ts,handler.ts,handler.test.ts}`, `packages/api/test/deleteTicket.test.ts`, `apps/web/components/DeleteTicket.tsx` (และเทสต์)
 - Modify: `supabase/config.toml`, `supabase/seed.sql`, `packages/api/src/{tickets.ts,errors.ts,database.types.ts}`, `apps/web/app/(app)/tickets/[id]/page.tsx`, `README.md`, `AGENTS.md`
 
 - [x] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: ช่างและผู้แจ้งเรียก `delete_ticket` ไม่ได้, admin ลบแล้วแถวที่เกี่ยวข้องหาย, อุปกรณ์ที่กำลังซ่อมกลับเป็นใช้งาน, `expired_closed_photos` คืนเฉพาะรูปของใบที่ปิดเกินกำหนด, client เรียกไม่ได้; handler: ไม่มี secret ได้ 401, ลบไฟล์ก่อนแถว, ไฟล์ลบไม่สำเร็จแล้วไม่ลบแถว
