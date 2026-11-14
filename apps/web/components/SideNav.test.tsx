@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => nav.path }));
 const LINKS: NavLink[] = [
   { href: '/tickets/new', label: 'แจ้งซ่อม', icon: 'new' },
   { href: '/tickets', label: 'ใบแจ้งซ่อม', icon: 'tickets' },
+  { href: '/notifications', label: 'การแจ้งเตือน', icon: 'bell', badge: 3 },
   { href: '/settings', label: 'ตั้งค่า', icon: 'settings' },
 ];
 
@@ -23,4 +24,15 @@ test.each([
   nav.path = path;
   render(<SideNav links={LINKS} />);
   expect(current()).toEqual(expected);
+});
+
+test('the notifications link shows the unread count and is named for it', () => {
+  nav.path = '/';
+  render(<SideNav links={LINKS} />);
+  expect(screen.getByRole('link', { name: 'การแจ้งเตือน ยังไม่อ่าน 3 รายการ' })).toBeTruthy();
+});
+
+test('no badge and a plain name when nothing is unread', () => {
+  render(<SideNav links={[{ href: '/notifications', label: 'การแจ้งเตือน', icon: 'bell', badge: 0 }]} />);
+  expect(screen.getByRole('link', { name: 'การแจ้งเตือน' }).textContent).toBe('การแจ้งเตือน');
 });

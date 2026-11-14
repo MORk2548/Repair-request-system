@@ -11,6 +11,12 @@ const ICONS = {
     </>
   ),
   tickets: <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />,
+  bell: (
+    <>
+      <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -50,7 +56,7 @@ const ICONS = {
   reports: <path d="M4 20h16M7 16.5V11M12 16.5V6M17 16.5v-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />,
 };
 
-export type NavLink = { href: string; label: string; icon: keyof typeof ICONS };
+export type NavLink = { href: string; label: string; icon: keyof typeof ICONS; badge?: number };
 
 export function SideNav({ links }: { links: NavLink[] }) {
   const path = usePathname();
@@ -62,11 +68,21 @@ export function SideNav({ links }: { links: NavLink[] }) {
   return (
     <nav className="sidebar-nav" aria-label="เมนูหลัก">
       {links.map((l) => (
-        <Link key={l.href} href={l.href} aria-current={l === active ? 'page' : undefined}>
+        <Link
+          key={l.href}
+          href={l.href}
+          aria-current={l === active ? 'page' : undefined}
+          aria-label={l.badge ? `${l.label} ยังไม่อ่าน ${l.badge} รายการ` : undefined}
+        >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             {ICONS[l.icon]}
           </svg>
           {l.label}
+          {l.badge ? (
+            <span className="nav-badge" aria-hidden="true">
+              {l.badge > 99 ? '99+' : l.badge}
+            </span>
+          ) : null}
         </Link>
       ))}
     </nav>
