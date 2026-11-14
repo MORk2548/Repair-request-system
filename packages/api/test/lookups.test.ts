@@ -13,6 +13,7 @@ beforeAll(async () => {
     { asset_tag: `${tag}-AC-01`, name: 'แอร์ ห้อง 101', install_location: 'ตึก A ห้อง 101', status: 'active' },
     { asset_tag: `${tag}-PR-01`, name: `เครื่องพิมพ์ 50%, ชั้น (2) ${tag}`, status: 'active' },
     { asset_tag: `${tag}-PR-02`, name: `เครื่องพิมพ์ 50x ชั้น 2 ${tag}`, status: 'active' },
+    { asset_tag: `${tag}-PC-01`, name: `front 01 ${tag}`, serial_no: `CF85R33-${tag}`, status: 'active' },
     { asset_tag: `${tag}-OLD`, name: 'เครื่องเก่า', status: 'retired' },
   ]);
   if (error) throw error;
@@ -37,8 +38,13 @@ test('listDepartments returns active rows for a signed-in user and inactive ones
 
 test('listEquipment matches asset tag or name and hides retired equipment', async () => {
   expect((await listEquipment(reporter.db, { q: `${tag}-ac` })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`]);
-  expect((await listEquipment(reporter.db, { q: tag })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`, `${tag}-PR-01`, `${tag}-PR-02`]);
+  expect((await listEquipment(reporter.db, { q: tag })).map((e) => e.assetTag)).toEqual([`${tag}-AC-01`, `${tag}-PC-01`, `${tag}-PR-01`, `${tag}-PR-02`]);
   expect((await listEquipment(reporter.db, { q: `${tag}-OLD`, includeInactive: true })).map((e) => e.status)).toEqual(['retired']);
+});
+
+test('listEquipment also finds a PC by its serial number or computer name, ignoring case', async () => {
+  expect((await listEquipment(reporter.db, { q: `cf85r33-${tag}` })).map((e) => e.assetTag)).toEqual([`${tag}-PC-01`]);
+  expect((await listEquipment(reporter.db, { q: `FRONT 01 ${tag}` })).map((e) => e.assetTag)).toEqual([`${tag}-PC-01`]);
 });
 
 test('listEquipment returns the install location', async () => {
@@ -47,7 +53,11 @@ test('listEquipment returns the install location', async () => {
       id: expect.any(Number),
       assetTag: `${tag}-AC-01`,
       name: 'แอร์ ห้อง 101',
+      model: null,
       serialNo: null,
+      monitorModel: null,
+      monitorSerialNo: null,
+      userName: null,
       departmentId: null,
       installLocation: 'ตึก A ห้อง 101',
       status: 'active',

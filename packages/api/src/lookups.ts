@@ -45,7 +45,7 @@ export async function listEquipment(db: Db, { q, includeInactive = false }: List
   const text = q?.trim();
   if (text) {
     const pattern = quote(escapeRegex(text));
-    query = query.or(`asset_tag.imatch.${pattern},name.imatch.${pattern}`).limit(20);
+    query = query.or(`asset_tag.imatch.${pattern},name.imatch.${pattern},serial_no.imatch.${pattern}`).limit(20);
   }
   const { data, error } = await query;
   if (error) throwDbError(error);

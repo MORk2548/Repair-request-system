@@ -176,7 +176,7 @@ export function TicketForm({ categories }: { categories: Category[] }) {
           <label htmlFor="equipment">อุปกรณ์ (ไม่บังคับ)</label>
           <input
             id="equipment"
-            placeholder="ค้นด้วยรหัสทรัพย์สินหรือชื่อ"
+            placeholder="ค้นด้วยรหัสทรัพย์สิน ชื่อเครื่อง หรือ SN"
             autoComplete="off"
             value={equipmentQuery}
             onChange={(e) => {
@@ -190,6 +190,7 @@ export function TicketForm({ categories }: { categories: Category[] }) {
                 <li key={m.id}>
                   <button type="button" onClick={() => pickEquipment(m)}>
                     <strong>{m.assetTag}</strong> {m.name}
+                    {m.serialNo && <span className="muted"> SN {m.serialNo}</span>}
                   </button>
                 </li>
               ))}

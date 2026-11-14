@@ -11,8 +11,19 @@ test('createUserSchema trims and lower-cases the email and explains a bad one in
 });
 
 test('equipmentSchema stores blank optional text as null', () => {
-  const v = equipmentSchema.parse({ assetTag: 'A-1', name: 'แอร์', serialNo: ' ', departmentId: null, installLocation: '', status: 'active' });
-  expect(v).toMatchObject({ serialNo: null, installLocation: null });
+  const v = equipmentSchema.parse({
+    assetTag: 'A-1',
+    name: 'front 01',
+    model: ' OptiPlex 3070 ',
+    serialNo: ' ',
+    monitorModel: '',
+    monitorSerialNo: ' ',
+    userName: '',
+    departmentId: null,
+    installLocation: '',
+    status: 'active',
+  });
+  expect(v).toMatchObject({ model: 'OptiPlex 3070', serialNo: null, monitorModel: null, monitorSerialNo: null, userName: null, installLocation: null });
 });
 
 test("updateUserSchema accepts the seed users' ids, which carry no RFC version digit", () => {

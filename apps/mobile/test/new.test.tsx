@@ -131,7 +131,7 @@ test('draft text survives a failed createTicket (network error) and can be resub
 
 test('picking equipment fills the location, which stays editable', async () => {
   jest.mocked(listEquipment).mockResolvedValue([
-    { id: 7, assetTag: 'AC-0001', name: 'แอร์ห้องประชุมใหญ่', installLocation: 'อาคาร A ชั้น 2', serialNo: null, departmentId: null, status: 'active' },
+    { id: 7, assetTag: 'AC-0001', name: 'แอร์ห้องประชุมใหญ่', installLocation: 'อาคาร A ชั้น 2', model: null, serialNo: null, monitorModel: null, monitorSerialNo: null, userName: null, departmentId: null, status: 'active' },
   ]);
   jest.mocked(createTicket).mockResolvedValue(ticket);
   const user = await setup();

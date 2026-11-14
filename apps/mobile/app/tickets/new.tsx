@@ -108,7 +108,7 @@ export default function NewTicketScreen() {
 
           <Field
             label="อุปกรณ์ (ไม่บังคับ)"
-            placeholder="ค้นด้วยรหัสทรัพย์สินหรือชื่อ"
+            placeholder="ค้นด้วยรหัสทรัพย์สิน ชื่อเครื่อง หรือ SN"
             autoCorrect={false}
             value={equipmentQuery}
             editable={!locked}
@@ -121,12 +121,13 @@ export default function NewTicketScreen() {
             <Pressable
               key={m.id}
               accessibilityRole="button"
-              accessibilityLabel={`${m.assetTag} ${m.name}`}
+              accessibilityLabel={`${m.assetTag} ${m.name}${m.serialNo ? ` SN ${m.serialNo}` : ''}`}
               onPress={() => pickEquipment(m)}
               style={[styles.card, { minHeight: 44, justifyContent: 'center', paddingVertical: 8, borderRadius: 8 }]}
             >
               <Text style={styles.text}>
                 <Text style={{ fontWeight: '700' }}>{m.assetTag}</Text> {m.name}
+                {m.serialNo ? ` SN ${m.serialNo}` : ''}
               </Text>
             </Pressable>
           ))}

@@ -70,7 +70,11 @@ export type Equipment = {
   id: number;
   assetTag: string;
   name: string;
+  model: string | null;
   serialNo: string | null;
+  monitorModel: string | null;
+  monitorSerialNo: string | null;
+  userName: string | null;
   departmentId: number | null;
   installLocation: string | null;
   status: Tables<'equipment'>['status'];
@@ -88,7 +92,11 @@ export const toEquipment = (r: Tables<'equipment'>): Equipment => ({
   id: r.id,
   assetTag: r.asset_tag,
   name: r.name,
+  model: r.model,
   serialNo: r.serial_no,
+  monitorModel: r.monitor_model,
+  monitorSerialNo: r.monitor_serial_no,
+  userName: r.user_name,
   departmentId: r.department_id,
   installLocation: r.install_location,
   status: r.status,

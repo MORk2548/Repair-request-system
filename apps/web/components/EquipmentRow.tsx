@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Field, fieldErrors } from './Field';
 import { ActionError, useAction } from './useAction';
 
-const COLUMNS = 7;
+const COLUMNS = 10;
 
 export function EquipmentRow({ equipment, departments }: { equipment: Equipment; departments: Department[] }) {
   const [editing, setEditing] = useState(false);
@@ -25,10 +25,13 @@ export function EquipmentRow({ equipment, departments }: { equipment: Equipment;
     <tr>
       <td className="nowrap">{equipment.assetTag}</td>
       <td>{equipment.name}</td>
+      <td>{equipment.model ?? '-'}</td>
       <td>{equipment.serialNo ?? '-'}</td>
+      <td>{[equipment.monitorModel, equipment.monitorSerialNo].filter(Boolean).join(' · ') || '-'}</td>
+      <td>{equipment.userName ?? '-'}</td>
       <td>{departments.find((d) => d.id === equipment.departmentId)?.name ?? '-'}</td>
       <td>{equipment.installLocation ?? '-'}</td>
-      <td>{EQUIPMENT_STATUS_LABELS[equipment.status]}</td>
+            <td>{EQUIPMENT_STATUS_LABELS[equipment.status]}</td>
       <td>
         <button type="button" className="button button-secondary" onClick={() => setEditing(true)}>
           แก้ไข
@@ -38,12 +41,27 @@ export function EquipmentRow({ equipment, departments }: { equipment: Equipment;
   );
 }
 
-type Fields = { assetTag: string; name: string; serialNo: string; departmentId: string; installLocation: string; status: EquipmentStatus };
+type Fields = {
+  assetTag: string;
+  name: string;
+  model: string;
+  serialNo: string;
+  monitorModel: string;
+  monitorSerialNo: string;
+  userName: string;
+  departmentId: string;
+  installLocation: string;
+  status: EquipmentStatus;
+};
 
 const fieldsOf = (e?: Equipment): Fields => ({
   assetTag: e?.assetTag ?? '',
   name: e?.name ?? '',
+  model: e?.model ?? '',
   serialNo: e?.serialNo ?? '',
+  monitorModel: e?.monitorModel ?? '',
+  monitorSerialNo: e?.monitorSerialNo ?? '',
+  userName: e?.userName ?? '',
   departmentId: e?.departmentId?.toString() ?? '',
   installLocation: e?.installLocation ?? '',
   status: e?.status ?? 'active',
@@ -81,7 +99,15 @@ export function EquipmentForm({ equipment, departments, onDone }: { equipment?: 
       <div className="row">
         {input('assetTag', 'รหัสทรัพย์สิน')}
         {input('name', 'ชื่ออุปกรณ์')}
-        {input('serialNo', 'หมายเลขเครื่อง')}
+        {input('userName', 'ผู้ใช้งาน')}
+      </div>
+      <div className="row">
+        {input('model', 'รุ่นเครื่อง')}
+        {input('serialNo', 'หมายเลขเครื่อง (SN)')}
+      </div>
+      <div className="row">
+        {input('monitorModel', 'รุ่นจอ')}
+        {input('monitorSerialNo', 'หมายเลขจอ (SN)')}
       </div>
       <div className="row">
         <Field label="แผนก" error={errors.departmentId}>

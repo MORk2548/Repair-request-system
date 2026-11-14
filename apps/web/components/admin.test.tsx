@@ -104,12 +104,14 @@ test('a duplicate asset tag is shown on the asset tag field', async () => {
   const u = userEvent.setup();
   render(<EquipmentForm departments={departments} />);
   await u.type(screen.getByLabelText('รหัสทรัพย์สิน'), 'AC-0001');
-  await u.type(screen.getByLabelText('ชื่ออุปกรณ์'), 'แอร์');
+  await u.type(screen.getByLabelText('ชื่ออุปกรณ์'), 'front 01');
+  await u.type(screen.getByLabelText('หมายเลขจอ (SN)'), '6CM4191G2Y');
+  await u.type(screen.getByLabelText('ผู้ใช้งาน'), 'พี่มณี');
   await u.click(screen.getByRole('button', { name: 'เพิ่มอุปกรณ์' }));
 
   const tag = screen.getByLabelText('รหัสทรัพย์สิน');
   await waitFor(() => expect(tag.getAttribute('aria-invalid')).toBe('true'));
   expect(document.getElementById(tag.getAttribute('aria-describedby')!)?.textContent).toBe('รหัสทรัพย์สินนี้มีอยู่แล้ว');
-  expect(saveEquipment).toHaveBeenCalledWith({}, expect.objectContaining({ assetTag: 'AC-0001', serialNo: null, status: 'active' }));
+  expect(saveEquipment).toHaveBeenCalledWith({}, expect.objectContaining({ assetTag: 'AC-0001', serialNo: null, monitorSerialNo: '6CM4191G2Y', userName: 'พี่มณี', status: 'active' }));
   expect(router.refresh).not.toHaveBeenCalled();
 });
