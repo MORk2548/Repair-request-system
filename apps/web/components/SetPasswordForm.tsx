@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { createBrowserDb } from '../lib/supabase-browser';
 import { Field, fieldErrors } from './Field';
+import { PasswordInput } from './PasswordInput';
 
 type Errors = Partial<Record<'password' | 'confirm', string>>;
 
@@ -36,10 +37,10 @@ export function SetPasswordForm() {
       <h1>ตั้งรหัสผ่าน</h1>
       <Field label="รหัสผ่านใหม่" error={errors.password}>
         {(p) => (
-          <input
+          <PasswordInput
             {...p}
+            toggleLabel="แสดงรหัสผ่านใหม่"
             name="password"
-            type="password"
             autoComplete="new-password"
             aria-describedby={[p['aria-describedby'], 'password-rules'].filter(Boolean).join(' ')}
             value={password}
@@ -59,7 +60,7 @@ export function SetPasswordForm() {
         })}
       </ul>
       <Field label="ยืนยันรหัสผ่าน" error={errors.confirm}>
-        {(p) => <input {...p} name="confirm" type="password" autoComplete="new-password" />}
+        {(p) => <PasswordInput {...p} toggleLabel="แสดงรหัสผ่านยืนยัน" name="confirm" autoComplete="new-password" />}
       </Field>
       {failed && (
         <p role="alert" className="alert alert-error">
