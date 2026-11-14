@@ -739,6 +739,30 @@ test('VersionConflictError shows reload message', /* … */);
 ---
 
 
+### Task 13: แจ้งเตือนในเว็บ (กระดิ่งและหน้าการแจ้งเตือน)
+
+ตอนนี้ยังไม่มี push (รอ 12.3) และอีเมล (รอ 12.4) ช่างจึงไม่รู้ว่าได้รับมอบหมายงานจนกว่าจะเข้ามาดูเอง งานนี้เพิ่มกล่องแจ้งเตือนในเว็บเป็นช่องทางที่สามของ `notify-ticket-event` ผู้รับและข้อความใช้กฎเดิมใน `packages/core/src/notify.ts` (`recipientsFor`, `messageFor`) ไม่เขียนกฎผู้รับซ้ำใน SQL
+
+**Data shape:** ตาราง `notifications(id bigint identity, user_id uuid → profiles, event_id bigint → ticket_events, read_at timestamptz null, created_at)` unique `(event_id, user_id)` แถวหนึ่งคือ "ผู้ใช้คนนี้ต้องรู้เรื่อง event นี้" สถานะ ใบ และเวลาอ่านจาก `ticket_events` และ `tickets` ตอนแสดงผล ไม่เก็บข้อความซ้ำ
+
+- ฟังก์ชันใส่แถวด้วย service role แบบ upsert ที่ข้ามแถวซ้ำ event ที่ส่งซ้ำจึงไม่สร้างแจ้งเตือนซ้ำ และการบันทึกล้มเหลวไม่ขวางช่องทางอื่น (นับใน `counts.inbox`)
+- RLS: ผู้ใช้ที่ active อ่านได้เฉพาะแถวของตัวเอง แก้ได้เฉพาะคอลัมน์ `read_at` ของแถวตัวเอง client insert/delete ไม่ได้ แถวที่ผู้ใช้มองไม่เห็นใบแล้ว (เช่น ส่งต่องานไปแล้ว) ไม่แสดงและไม่นับ
+- ตารางอยู่ใน publication `supabase_realtime` เว็บจึงอัปเดตตัวเลขทันทีเมื่อมีแถวใหม่
+
+**Files:**
+- Create: `supabase/migrations/0009_notifications.sql`, `supabase/tests/notifications.sql`, `packages/api/src/notifications.ts`, `packages/api/test/notifications.test.ts`, `apps/web/app/(app)/notifications/page.tsx`, `apps/web/components/NotificationList.tsx`, `apps/web/components/NotificationBell.tsx` (และเทสต์)
+- Modify: `supabase/functions/notify-ticket-event/{process.ts,process.test.ts,index.ts}`, `packages/api/src/{index.ts,rows.ts}`, `packages/api/src/database.types.ts` (`gen:types`), `apps/web/app/(app)/layout.tsx`, `apps/web/components/SideNav.tsx`, `apps/web/app/(app)/tickets/[id]/page.tsx`, `apps/web/app/globals.css`, `e2e/smoke.spec.ts`, `AGENTS.md`
+
+- [x] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: เห็นเฉพาะแถวตัวเอง, insert ไม่ได้, แก้ `read_at` ของคนอื่นไม่ได้, แก้คอลัมน์อื่นไม่ได้, บัญชีที่ปิดใช้งานเห็น 0 แถว; `process.test.ts`: ผู้รับทุกคนได้แถว inbox แม้ไม่มี token หรืออีเมล, inbox ล้มเหลวแล้ว push ยังส่ง; api: รายการเรียงใหม่สุดก่อน, `countUnread`, อ่านแล้วตัวเลขลด
+- [x] **Step 2: เขียน migration, ช่องทาง inbox ในฟังก์ชัน, api** `listNotifications(db, { limit })`, `countUnread(db)`, `markNotificationsRead(db, { ids } | { ticketId } | 'all')`
+- [x] **Step 3: เว็บ** ลิงก์ "การแจ้งเตือน" ในแถบด้านข้างพร้อมป้ายจำนวนที่ยังไม่อ่าน (อ่านจาก layout และอัปเดตผ่าน Realtime ด้วย `router.refresh()`), หน้า `/notifications` แสดง 30 รายการล่าสุด (หัวข้อและข้อความจาก `messageFor`, เวลา `formatThaiDateTime`, รายการที่ยังไม่อ่านเด่นกว่า), คลิกแล้วทำเครื่องหมายว่าอ่านและเปิดใบ, ปุ่ม "อ่านทั้งหมด"; เปิดหน้าใบแล้วแจ้งเตือนของใบนั้นถือว่าอ่านแล้ว
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` (เพิ่มขั้น: หลัง admin มอบหมาย kittipong เห็นแจ้งเตือน "มอบหมายงาน" ของใบนั้น) แล้ว `corepack pnpm db:reset`
+- [ ] **Step 5: ขึ้น cloud** `supabase db push --remote` และ `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
+- [x] **Step 6: Commit** `git commit -m "feat: in-app notifications on the web"`
+
+---
+
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER

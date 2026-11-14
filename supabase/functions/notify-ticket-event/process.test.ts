@@ -13,7 +13,7 @@ const contacts: Record<string, { pushToken: string | null; email: string | null 
   [ADMIN]: { pushToken: null, email: 'a@x.test' },
 };
 
-type Fn = 'loadTicket' | 'listStaffIds' | 'getContact' | 'sendPush' | 'sendEmail';
+type Fn = 'loadTicket' | 'listStaffIds' | 'getContact' | 'sendPush' | 'sendEmail' | 'saveInbox';
 let deps: { [K in Fn]: ReturnType<typeof vi.fn<Deps[K]>> } & Pick<Deps, 'webBaseUrl' | 'emailEnabled'>;
 
 beforeEach(() => {
@@ -23,6 +23,7 @@ beforeEach(() => {
     getContact: vi.fn(async (userId) => contacts[userId] ?? null),
     sendPush: vi.fn(async () => {}),
     sendEmail: vi.fn(async () => {}),
+    saveInbox: vi.fn(async () => {}),
     webBaseUrl: 'https://web.test/',
     emailEnabled: true,
   };
@@ -32,9 +33,10 @@ beforeEach(() => {
 const event = (over: Partial<Parameters<typeof processEvent>[0]> = {}) =>
   ({ id: '1', ticketId: TICKET, actorId: ADMIN, toStatus: 'assigned', reporterId: REPORTER, assigneeId: TECH, ...over }) as const;
 
-const counts = (push: [number, number, number], email: [number, number, number]) => ({
+const counts = (push: [number, number, number], email: [number, number, number], inbox: [number, number, number] = [0, 0, 0]) => ({
   push: { sent: push[0], failed: push[1], skipped: push[2] },
   email: { sent: email[0], failed: email[1], skipped: email[2] },
+  inbox: { sent: inbox[0], failed: inbox[1], skipped: inbox[2] },
 });
 
 test('processEvent pushes to every recipient that has a token and skips those without', async () => {
@@ -53,7 +55,7 @@ test('a push failure for one recipient does not stop the others', async () => {
 });
 
 test('a recipient whose profile is missing or inactive gets neither channel', async () => {
-  expect(await processEvent(event({ reporterId: 'gone' }), deps)).toEqual(counts([1, 0, 1], [1, 0, 1]));
+  expect(await processEvent(event({ reporterId: 'gone' }), deps)).toEqual(counts([1, 0, 1], [1, 0, 1], [2, 0, 0]));
   expect(deps.sendEmail.mock.calls.map((c) => c[0])).toEqual(['t@x.test']);
 });
 
@@ -99,7 +101,7 @@ test('recipient without email still gets push; recipient without token still get
     const r = await processEvent(event({ toStatus: 'done', actorId: REPORTER, reporterId: TECH }), deps);
     expect(deps.sendPush.mock.calls.map((c) => c[0])).toEqual(['tok-t']);
     expect(deps.sendEmail.mock.calls.map((c) => c[0])).toEqual(['a@x.test']);
-    expect(r).toEqual(counts([1, 0, 1], [1, 0, 1]));
+    expect(r).toEqual(counts([1, 0, 1], [1, 0, 1], [2, 0, 0]));
   } finally {
     contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test' };
   }
@@ -112,7 +114,7 @@ test('email failure does not block push and push failure does not block email', 
   deps.sendPush.mockImplementation(async (token) => {
     if (token === 'tok-t') throw new Error('expo down');
   });
-  expect(await processEvent(event(), deps)).toEqual(counts([1, 1, 0], [1, 1, 0]));
+  expect(await processEvent(event(), deps)).toEqual(counts([1, 1, 0], [1, 1, 0], [2, 0, 0]));
   expect(deps.sendPush.mock.calls.map((c) => c[0]).sort()).toEqual(['tok-r', 'tok-t']);
   expect(deps.sendEmail.mock.calls.map((c) => c[0]).sort()).toEqual(['r@x.test', 't@x.test']);
 });
@@ -127,7 +129,7 @@ test('retrying the same event reuses the same idempotency keys', async () => {
 
 test('with email disabled no email is sent and every email counts as skipped', async () => {
   deps.emailEnabled = false;
-  expect(await processEvent(event(), deps)).toEqual(counts([2, 0, 0], [0, 0, 2]));
+  expect(await processEvent(event(), deps)).toEqual(counts([2, 0, 0], [0, 0, 2], [2, 0, 0]));
   expect(deps.sendEmail).not.toHaveBeenCalled();
 });
 
@@ -166,6 +168,39 @@ test('an event without a status (a comment) is ignored with 200', async () => {
 });
 
 test('a valid event is processed and answers 200 with the counts per channel', async () => {
-  expect(await handle({ secret: SECRET, body: row }, SECRET, deps)).toEqual({ status: 200, body: counts([2, 0, 0], [2, 0, 0]) });
+  expect(await handle({ secret: SECRET, body: row }, SECRET, deps)).toEqual({ status: 200, body: counts([2, 0, 0], [2, 0, 0], [2, 0, 0]) });
   expect(deps.loadTicket).toHaveBeenCalledWith(TICKET);
+});
+
+test('every recipient gets an inbox row in one call, even without a push token or an email', async () => {
+  contacts[TECH] = { pushToken: null, email: null };
+  try {
+    const r = await processEvent(event({ id: '7' }), deps);
+    expect(deps.saveInbox).toHaveBeenCalledTimes(1);
+    expect(deps.saveInbox).toHaveBeenCalledWith('7', expect.arrayContaining([REPORTER, TECH]));
+    expect(vi.mocked(deps.saveInbox).mock.calls[0]![1]).toHaveLength(2);
+    expect(r.inbox).toEqual({ sent: 2, failed: 0, skipped: 0 });
+  } finally {
+    contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test' };
+  }
+});
+
+test('an inbox failure is counted for every recipient and push and email still go out', async () => {
+  deps.saveInbox.mockRejectedValue(new Error('db down'));
+  const r = await processEvent(event(), deps);
+  expect(r).toEqual(counts([2, 0, 0], [2, 0, 0], [0, 2, 0]));
+  expect(deps.sendPush).toHaveBeenCalledTimes(2);
+});
+
+test('a push and email failure does not stop the inbox row', async () => {
+  deps.sendPush.mockRejectedValue(new Error('expo down'));
+  deps.sendEmail.mockRejectedValue(new Error('resend down'));
+  const r = await processEvent(event(), deps);
+  expect(r.inbox).toEqual({ sent: 2, failed: 0, skipped: 0 });
+});
+
+test('an event with no recipients writes no inbox rows', async () => {
+  const r = await processEvent(event({ toStatus: 'in_progress', actorId: REPORTER, assigneeId: null }), deps);
+  expect(deps.saveInbox).not.toHaveBeenCalled();
+  expect(r.inbox).toEqual({ sent: 0, failed: 0, skipped: 0 });
 });

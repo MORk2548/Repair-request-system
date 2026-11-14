@@ -71,6 +71,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notifications": {
+                  Row: {
+                    "created_at": string,"event_id": number,"id": number,"read_at": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"event_id": number,"id"?: never,"read_at"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"event_id"?: number,"id"?: never,"read_at"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "ticket_events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "technician_options"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "ticket_people"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"department_id": number | null,"display_name": string,"expo_push_token": string | null,"id": string,"is_active": boolean,"role": Database["public"]['Enums']["app_role"]

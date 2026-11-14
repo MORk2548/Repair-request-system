@@ -1,4 +1,4 @@
-import { getTicket, listTechnicians } from '@repair/api';
+import { getTicket, listTechnicians, markNotificationsRead } from '@repair/api';
 import { PRIORITY_LABELS, STATUS_LABELS, eventLabel, formatThaiDateTime } from '@repair/core';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -10,7 +10,12 @@ import { getSession } from '../../../../lib/session';
 export default async function TicketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { db, user, role } = await getSession();
-  const [ticket, technicians] = await Promise.all([getTicket(db, id), role === 'reporter' ? [] : listTechnicians(db)]);
+  const [ticket, technicians] = await Promise.all([
+    getTicket(db, id),
+    role === 'reporter' ? [] : listTechnicians(db),
+    // opening the ticket reads its notifications; a failure here must not break the page
+    markNotificationsRead(db, { ticketId: id }).catch(() => {}),
+  ]);
   if (!ticket) notFound();
   const { people } = ticket;
   const name = (personId: string | null) => (personId ? (people[personId] ?? 'ไม่ทราบชื่อ') : '-');

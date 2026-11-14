@@ -47,6 +47,16 @@ const deps: Deps = {
     const tickets = [JSON.parse(text || '{}').data].flat();
     if (tickets.some((t) => t?.status === 'error')) throw new Error(`expo push ticket error: ${text}`);
   },
+  async saveInbox(eventId, userIds) {
+    must(
+      await admin
+        .from('notifications')
+        .upsert(
+          userIds.map((user_id) => ({ user_id, event_id: Number(eventId) })),
+          { onConflict: 'event_id,user_id', ignoreDuplicates: true },
+        ),
+    );
+  },
   sendEmail: (to, mail, key) => sendViaResend(fetch, resend, to, mail, key),
   webBaseUrl: Deno.env.get('WEB_BASE_URL') ?? 'http://localhost:3000',
   emailEnabled,

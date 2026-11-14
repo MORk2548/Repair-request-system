@@ -1,9 +1,12 @@
+import { countUnread } from '@repair/api';
 import { ROLE_LABELS } from '@repair/core';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { NotificationBell } from '../../components/NotificationBell';
 import { SideNav, type NavLink } from '../../components/SideNav';
 import { SignOutButton } from '../../components/SignOutButton';
 import { getSession } from '../../lib/session';
+import { createServerDb } from '../../lib/supabase-server';
 
 const ADMIN_LINKS: NavLink[] = [
   { href: '/admin/users', label: 'ผู้ใช้', icon: 'users' },
@@ -13,11 +16,16 @@ const ADMIN_LINKS: NavLink[] = [
 ];
 
 export default async function SignedInLayout({ children }: { children: ReactNode }) {
-  const { user, profile, role } = await getSession();
+  // the count needs no profile, so it runs beside the session lookup; a failed count only hides the badge
+  const [{ user, profile, role }, unread] = await Promise.all([
+    getSession(),
+    createServerDb().then(countUnread).catch(() => 0),
+  ]);
   const name = profile?.displayName ?? user.email ?? '';
   const links: NavLink[] = [
     { href: '/tickets/new', label: 'แจ้งซ่อม', icon: 'new' },
     { href: '/tickets', label: role === 'reporter' ? 'ใบแจ้งซ่อมของฉัน' : 'ใบแจ้งซ่อม', icon: 'tickets' },
+    { href: '/notifications', label: 'การแจ้งเตือน', icon: 'bell', badge: unread },
     ...(role === 'admin' ? ADMIN_LINKS : []),
     { href: '/account', label: 'บัญชีของฉัน', icon: 'account' },
     { href: '/settings', label: 'ตั้งค่า', icon: 'settings' },
@@ -49,6 +57,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
           <SignOutButton />
         </div>
       </aside>
+      <NotificationBell userId={user.id} />
       <main>{children}</main>
     </div>
   );
