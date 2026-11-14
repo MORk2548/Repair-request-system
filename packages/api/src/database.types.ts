@@ -333,6 +333,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"web_push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": number,"p256dh": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: never,"p256dh": string,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: never,"p256dh"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_push_subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "web_push_subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "technician_options"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "web_push_subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "ticket_people"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -414,6 +446,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_web_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string }; Returns: undefined
+                           },
 "sync_equipment_status":
 { Args: { "p_equipment_id": number }; Returns: undefined
                            },

@@ -757,8 +757,32 @@ test('VersionConflictError shows reload message', /* … */);
 - [x] **Step 2: เขียน migration, ช่องทาง inbox ในฟังก์ชัน, api** `listNotifications(db, { limit })`, `countUnread(db)`, `markNotificationsRead(db, { ids } | { ticketId } | 'all')`
 - [x] **Step 3: เว็บ** ลิงก์ "การแจ้งเตือน" ในแถบด้านข้างพร้อมป้ายจำนวนที่ยังไม่อ่าน (อ่านจาก layout และอัปเดตผ่าน Realtime ด้วย `router.refresh()`), หน้า `/notifications` แสดง 30 รายการล่าสุด (หัวข้อและข้อความจาก `messageFor`, เวลา `formatThaiDateTime`, รายการที่ยังไม่อ่านเด่นกว่า), คลิกแล้วทำเครื่องหมายว่าอ่านและเปิดใบ, ปุ่ม "อ่านทั้งหมด"; เปิดหน้าใบแล้วแจ้งเตือนของใบนั้นถือว่าอ่านแล้ว
 - [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` (เพิ่มขั้น: หลัง admin มอบหมาย kittipong เห็นแจ้งเตือน "มอบหมายงาน" ของใบนั้น) แล้ว `corepack pnpm db:reset`
-- [ ] **Step 5: ขึ้น cloud** `supabase db push --remote` และ `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
+- [x] **Step 5: ขึ้น cloud** `supabase db push --remote` และ `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
 - [x] **Step 6: Commit** `git commit -m "feat: in-app notifications on the web"`
+
+---
+
+### Task 14: แจ้งเตือนขึ้นหน้าจอด้วย Web Push
+
+Task 13 แจ้งเตือนได้เฉพาะตอนเปิดเว็บอยู่ ส่วน push ของแอปมือถือฟรีแค่บน Android และอีเมลต้องมีโดเมน งานนี้ให้เว็บบน `*.vercel.app` ส่งแจ้งเตือนขึ้นหน้าจอได้แม้ปิดแท็บแล้ว โดยใช้ Web Push ที่เบราว์เซอร์มีอยู่แล้วกับกุญแจ VAPID ที่สร้างเองได้ ฟรีทั้ง Android และ iPhone (iOS 16.4 ขึ้นไป และต้องเพิ่มเว็บไปยังหน้าจอโฮมก่อน) ผู้รับและข้อความใช้ `recipientsFor` และ `messageFor` เดิม
+
+**Data shape:** ตาราง `web_push_subscriptions(id bigint identity, user_id uuid → profiles, endpoint text unique, p256dh text, auth text, created_at)` แถวหนึ่งคือเบราว์เซอร์หนึ่งตัวที่ผู้ใช้เปิดรับแจ้งเตือน endpoint ระบุเบราว์เซอร์ ไม่ใช่คน คนหนึ่งจึงมีได้หลายแถว (มือถือ คอมพิวเตอร์)
+
+- RPC `save_web_push_subscription(endpoint, p256dh, auth)` (security definer) ผูก endpoint กับผู้เรียก และเอาออกจากคนอื่นถ้ามี เหมือน `claim_push_token` เบราว์เซอร์ที่คนก่อนออกจากระบบไม่สำเร็จจึงไม่ได้รับแจ้งเตือนของคนก่อนอีก
+- RLS: ผู้ใช้ที่ active อ่านและลบได้เฉพาะแถวของตัวเอง insert และ update ได้ทาง RPC เท่านั้น
+- ฟังก์ชันส่งช่องทางที่สี่ `counts.web` ทีละผู้รับ ส่งทุกเบราว์เซอร์ของผู้รับ เบราว์เซอร์ที่ตอบ 404/410 (ยกเลิกไปแล้ว) ถูกลบแถว ล้มเหลวแล้วไม่ขวางช่องทางอื่น ปิดอยู่จนกว่าจะตั้ง `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` และ `VAPID_SUBJECT`
+- เว็บ: `public/sw.js` แสดงแจ้งเตือนและเปิด `/tickets/<id>` เมื่อกด, `app/manifest.ts` ให้ iPhone เพิ่มไปยังหน้าจอโฮมเป็นแอปได้, หน้า "ตั้งค่า" มีปุ่มเปิดหรือปิดการแจ้งเตือนบนอุปกรณ์นี้ (บอกเหตุผลเป็นภาษาไทยเมื่อเบราว์เซอร์ไม่รองรับหรือถูกปฏิเสธสิทธิ์), ออกจากระบบแล้วลบ subscription ของเบราว์เซอร์นี้ก่อน
+
+**Files:**
+- Create: `supabase/migrations/0010_web_push.sql`, `supabase/tests/web_push.sql`, `packages/api/src/webPush.ts`, `packages/api/test/webPush.test.ts`, `apps/web/public/sw.js`, `apps/web/app/manifest.ts`, `apps/web/components/PushToggle.tsx` (และเทสต์), `apps/web/lib/webPush.ts`
+- Modify: `supabase/functions/notify-ticket-event/{process.ts,process.test.ts,index.ts}`, `supabase/functions/.env.example`, `packages/api/src/{index.ts,database.types.ts}`, `apps/web/middleware.ts`, `apps/web/components/SignOutButton.tsx`, `apps/web/app/(app)/settings/page.tsx`, `apps/web/.env.example`, `apps/web/public/icon.svg`, `README.md`, `AGENTS.md`
+
+- [x] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: RPC ผูก endpoint กับผู้เรียกและย้ายจากคนอื่น, เห็นและลบได้เฉพาะแถวตัวเอง, insert ตรงไม่ได้, บัญชีที่ปิดใช้งานเรียก RPC ไม่ได้; `process.test.ts`: ส่งทุกเบราว์เซอร์ของผู้รับ, ไม่มี subscription นับ skipped, web push ล้มเหลวแล้วช่องทางอื่นยังส่ง; api: save แล้ว list เห็น, delete แล้วหาย
+- [x] **Step 2: migration, ช่องทาง web ในฟังก์ชัน, api** `saveWebPushSubscription(db, sub)`, `deleteWebPushSubscription(db, endpoint)`
+- [x] **Step 3: เว็บ** service worker, manifest, `PushToggle`, ออกจากระบบแล้วลบ subscription
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` และลองจริงในเบราว์เซอร์กับ stack ในเครื่อง แล้ว `corepack pnpm db:reset`
+- [ ] **Step 5: ขึ้น cloud** สร้างกุญแจ VAPID, ตั้ง secret ของฟังก์ชันและ `NEXT_PUBLIC_VAPID_PUBLIC_KEY` บน Vercel, `supabase db push --remote`, `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
+- [x] **Step 6: Commit** `git commit -m "feat: web push notifications"`
 
 ---
 

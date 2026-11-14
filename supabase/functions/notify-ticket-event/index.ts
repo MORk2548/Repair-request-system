@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import webpush from 'npm:web-push@3.6.7';
 import { sendViaResend } from './email.ts';
 import { handle, type Deps } from './process.ts';
 
@@ -10,6 +11,12 @@ const resendKey = Deno.env.get('RESEND_API_KEY');
 const emailFrom = Deno.env.get('EMAIL_FROM');
 const resend = { apiUrl: Deno.env.get('RESEND_API_URL'), apiKey: resendKey ?? '', from: emailFrom ?? '' };
 const emailEnabled = Boolean(resendKey && emailFrom);
+const vapid = {
+  subject: Deno.env.get('VAPID_SUBJECT') ?? '',
+  publicKey: Deno.env.get('VAPID_PUBLIC_KEY') ?? '',
+  privateKey: Deno.env.get('VAPID_PRIVATE_KEY') ?? '',
+};
+const webPushEnabled = Boolean(vapid.subject && vapid.publicKey && vapid.privateKey);
 
 const must = <T>(r: { data: T; error: unknown }): T => {
   if (r.error) throw r.error;
@@ -29,11 +36,14 @@ const deps: Deps = {
   async getContact(userId) {
     const row = must(await admin.from('profiles').select('expo_push_token, is_active').eq('id', userId).maybeSingle());
     if (!row?.is_active) return null;
-    if (!emailEnabled) return { pushToken: row.expo_push_token, email: null };
+    const webPush = webPushEnabled
+      ? must(await admin.from('web_push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId))
+      : [];
+    if (!emailEnabled) return { pushToken: row.expo_push_token, email: null, webPush };
     // a failed Auth lookup only loses the email, so the push still goes out
     const { data, error } = await admin.auth.admin.getUserById(userId);
     if (error) console.error('email lookup', userId, error.message);
-    return { pushToken: row.expo_push_token, email: data?.user?.email ?? null };
+    return { pushToken: row.expo_push_token, email: data?.user?.email ?? null, webPush };
   },
   async sendPush(to, m) {
     const res = await fetch(pushUrl, {
@@ -58,6 +68,21 @@ const deps: Deps = {
     );
   },
   sendEmail: (to, mail, key) => sendViaResend(fetch, resend, to, mail, key),
+  async sendWebPush(sub, m) {
+    // web-push only encrypts and signs here; sending with fetch avoids its Node https client
+    const req = webpush.generateRequestDetails(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+      JSON.stringify({ title: m.title, body: m.body, url: `/tickets/${m.ticketId}` }),
+      { vapidDetails: vapid, TTL: 86400 },
+    );
+    const res = await fetch(req.endpoint, { method: req.method, headers: req.headers, body: req.body });
+    if (res.ok) return;
+    // 404 and 410 mean the browser unsubscribed or the subscription expired; it will never work again
+    if (res.status === 404 || res.status === 410) {
+      must(await admin.from('web_push_subscriptions').delete().eq('endpoint', sub.endpoint));
+    }
+    throw new Error(`web push ${res.status}: ${await res.text()}`);
+  },
   webBaseUrl: Deno.env.get('WEB_BASE_URL') ?? 'http://localhost:3000',
   emailEnabled,
 };

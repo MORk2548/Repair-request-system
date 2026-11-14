@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { PushToggle } from '../../../components/PushToggle';
 import { SettingsForm } from '../../../components/SettingsForm';
 import { parsePreferences } from '../../../lib/preferences';
 
@@ -8,9 +9,10 @@ export default async function SettingsPage() {
       <header className="page-head">
         <div className="eyebrow">การแสดงผล</div>
         <h1>ตั้งค่า</h1>
-        <p>เลือกโหมดการแสดงผลและขนาดตัวอักษรที่อ่านสบาย</p>
+        <p>เลือกโหมดการแสดงผล ขนาดตัวอักษร และการแจ้งเตือนบนอุปกรณ์นี้</p>
       </header>
       <SettingsForm current={parsePreferences(await cookies())} />
+      <PushToggle />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { createBrowserDb } from '../lib/supabase-browser';
+import { disablePush } from '../lib/webPush';
 
 export function SignOutButton() {
   const router = useRouter();
@@ -10,7 +11,10 @@ export function SignOutButton() {
       type="button"
       className="logout-button"
       onClick={async () => {
-        await createBrowserDb().auth.signOut();
+        const db = createBrowserDb();
+        // a shared computer must stop showing this user's notifications; a failure here must not block signing out
+        await disablePush(db).catch(() => {});
+        await db.auth.signOut();
         router.replace('/login');
         router.refresh();
       }}
