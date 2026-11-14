@@ -13,6 +13,8 @@ const env = (() => {
   return { url: s.API_URL as string, anonKey: s.ANON_KEY as string, serviceKey: s.SERVICE_ROLE_KEY as string };
 })();
 
+export const functionsUrl = `${env.url}/functions/v1`;
+
 const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
 
 // tests only: creates users, profiles and lookup rows that no client role may write

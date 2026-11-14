@@ -401,6 +401,10 @@ verify_jwt = true
 [functions.notify-ticket-event]
 verify_jwt = false
 
+# called daily by pg_cron through request_photo_purge(), not by a user; it checks the x-webhook-secret header instead
+[functions.purge-photos]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

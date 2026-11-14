@@ -72,3 +72,6 @@ join public.departments d on d.name = e.department;
 -- supabase/functions/.env.
 select vault.create_secret('http://kong:8000/functions/v1/notify-ticket-event', 'notify_function_url');
 select vault.create_secret('local-dev-notify-secret', 'notify_webhook_secret');
+
+-- Wires request_photo_purge() (0012_ticket_delete_photo_purge.sql), which pg_cron runs daily, to the local purge-photos function.
+select vault.create_secret('http://kong:8000/functions/v1/purge-photos', 'purge_function_url');

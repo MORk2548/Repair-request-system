@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { CommentList } from '../../../../components/CommentList';
+import { DeleteTicket } from '../../../../components/DeleteTicket';
 import { StatusActions } from '../../../../components/StatusActions';
 import { getSession } from '../../../../lib/session';
 
@@ -77,6 +78,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
                 </li>
               ))}
             </ul>
+            {ticket.status === 'closed' && <p className="muted">รูปจะถูกลบอัตโนมัติเมื่อปิดงานครบ 1 เดือน</p>}
           </section>
         )}
       </article>
@@ -101,6 +103,8 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
       </section>
 
       <CommentList ticketId={ticket.id} comments={ticket.comments} people={people} />
+
+      {role === 'admin' && <DeleteTicket ticketId={ticket.id} ticketNo={ticket.ticketNo} />}
     </div>
   );
 }

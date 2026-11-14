@@ -411,6 +411,14 @@ isOneToOne: false
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"]
                            },
+"delete_ticket":
+{ Args: { "p_ticket_id": string }; Returns: (string)[]
+                           },
+"expired_closed_photos":
+{ Args: { "p_days": number,"p_limit": number }; Returns: {
+              "id": number,"storage_path": string
+            }[]
+                           },
 "generate_ticket_no":
 { Args: { "at": string }; Returns: string
                            },
@@ -446,6 +454,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"request_photo_purge":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "save_web_push_subscription":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string }; Returns: undefined
                            },

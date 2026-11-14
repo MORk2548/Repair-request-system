@@ -37,7 +37,7 @@ corepack pnpm web:dev
 corepack pnpm exec supabase login
 corepack pnpm exec supabase link --project-ref <project-ref>
 corepack pnpm exec supabase db push --remote
-corepack pnpm exec supabase functions deploy admin-users notify-ticket-event --remote
+corepack pnpm exec supabase functions deploy admin-users notify-ticket-event purge-photos --remote
 corepack pnpm exec supabase secrets set NOTIFY_WEBHOOK_SECRET=<ค่าสุ่มยาว> WEB_BASE_URL=<ที่อยู่เว็บจริง> --remote
 ```
 
@@ -54,6 +54,7 @@ corepack pnpm exec supabase secrets set VAPID_SUBJECT=<ที่อยู่เ�
 ```sql
 select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/notify-ticket-event', 'notify_function_url');
 select vault.create_secret('<ค่าเดียวกับ NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');
+select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/purge-photos', 'purge_function_url');
 ```
 
 ตั้งค่าในหน้า project (ห้ามใช้ `supabase config push` เพราะจะเอาค่าสำหรับเครื่องพัฒนาขึ้นไปด้วย เช่น ปิดการยืนยันอีเมล)
