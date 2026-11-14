@@ -1,6 +1,6 @@
 'use client';
 
-import { setPasswordSchema } from '@repair/core';
+import { PASSWORD_RULES, setPasswordSchema } from '@repair/core';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { createBrowserDb } from '../lib/supabase-browser';
@@ -13,6 +13,7 @@ export function SetPasswordForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [failed, setFailed] = useState(false);
   const [sending, setSending] = useState(false);
+  const [password, setPassword] = useState('');
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,8 +35,29 @@ export function SetPasswordForm() {
     <form onSubmit={submit} noValidate>
       <h1>ตั้งรหัสผ่าน</h1>
       <Field label="รหัสผ่านใหม่" error={errors.password}>
-        {(p) => <input {...p} name="password" type="password" autoComplete="new-password" />}
+        {(p) => (
+          <input
+            {...p}
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            aria-describedby={[p['aria-describedby'], 'password-rules'].filter(Boolean).join(' ')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        )}
       </Field>
+      <ul id="password-rules" className="password-rules" aria-label="เงื่อนไขรหัสผ่าน">
+        {PASSWORD_RULES.map((r) => {
+          const ok = password !== '' && r.test(password);
+          return (
+            <li key={r.label} className={ok ? 'rule-ok' : undefined}>
+              <span aria-hidden="true">{ok ? '✓' : '•'}</span> {r.label}
+              <span className="visually-hidden">{ok ? ' (ผ่านแล้ว)' : ''}</span>
+            </li>
+          );
+        })}
+      </ul>
       <Field label="ยืนยันรหัสผ่าน" error={errors.confirm}>
         {(p) => <input {...p} name="confirm" type="password" autoComplete="new-password" />}
       </Field>

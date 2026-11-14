@@ -7,3 +7,4 @@ export * from './dates.ts';
 export * from './notify.ts';
 export * from './email.ts';
 export * from './theme.ts';
+export * from './password.ts';
