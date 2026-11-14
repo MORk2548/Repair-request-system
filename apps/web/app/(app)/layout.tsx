@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { NotificationBell } from '../../components/NotificationBell';
 import { SideNav, type NavLink } from '../../components/SideNav';
+import { SidebarMenu } from '../../components/SidebarMenu';
 import { SignOutButton } from '../../components/SignOutButton';
 import { getSession } from '../../lib/session';
 import { createServerDb } from '../../lib/supabase-server';
@@ -45,17 +46,19 @@ export default async function SignedInLayout({ children }: { children: ReactNode
             <span className="brand-caption">แจ้งและติดตามงานซ่อม</span>
           </span>
         </Link>
-        <SideNav links={links} />
-        <div className="user-chip">
-          <span className="avatar" aria-hidden="true">
-            {Array.from(name)[0]}
-          </span>
-          <span className="user-meta">
-            <span className="user-name">{name}</span>
-            <span className="user-role">{ROLE_LABELS[role]}</span>
-          </span>
-          <SignOutButton />
-        </div>
+        <SidebarMenu unread={unread}>
+          <SideNav links={links} />
+          <div className="user-chip">
+            <span className="avatar" aria-hidden="true">
+              {Array.from(name)[0]}
+            </span>
+            <span className="user-meta">
+              <span className="user-name">{name}</span>
+              <span className="user-role">{ROLE_LABELS[role]}</span>
+            </span>
+            <SignOutButton />
+          </div>
+        </SidebarMenu>
       </aside>
       <NotificationBell userId={user.id} />
       <main>{children}</main>

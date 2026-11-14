@@ -191,6 +191,9 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 }
 .logout-button:hover { background: var(--sidebar-active); }
 
+.menu-toggle { display: none; }
+.sidebar-menu { display: contents; }
+
 main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 
 .page-head { margin-bottom: 1.5rem; }
@@ -397,22 +400,42 @@ td .stack { min-width: 12rem; }
 .matches button:hover { background: var(--primary-soft); }
 .photos li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .25rem .25rem .25rem .8rem; overflow-wrap: anywhere; }
 
-/* Phones and small tablets: the sidebar becomes a top bar with a scrolling menu, and the ticket table becomes a list of cards */
+/* Phones and small tablets: the sidebar becomes a top bar whose menu opens from a button, and the ticket table becomes a list of cards */
 
 @media (max-width: 760px) {
   .app-shell { display: block; background: none; }
   .sidebar {
-    position: static;
+    position: sticky;
+    z-index: 10;
     height: auto;
+    max-height: 100dvh;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: .6rem 1rem;
+    align-items: center;
+    gap: 0 1rem;
     padding: .75rem 1rem;
   }
-  .brand-caption, .user-meta, .user-chip .avatar { display: none; }
-  .sidebar-nav { grid-column: 1 / -1; grid-row: 2; display: flex; overflow-x: auto; }
-  .sidebar-nav a { white-space: nowrap; }
-  .user-chip { grid-column: 2; grid-row: 1; margin: 0; padding: 0; border: 0; }
+  .brand-caption { display: none; }
+  .menu-toggle {
+    position: relative;
+    display: grid; place-items: center;
+    width: 2.75rem; height: 2.75rem;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: .7rem;
+    background: transparent;
+    color: var(--sidebar-ink);
+  }
+  .menu-toggle[aria-expanded="true"] { background: var(--sidebar-active); }
+  .menu-toggle svg { width: 1.4rem; height: 1.4rem; }
+  .menu-dot {
+    position: absolute; top: .45rem; right: .45rem;
+    width: .6rem; height: .6rem;
+    border-radius: 50%; background: var(--danger);
+    box-shadow: 0 0 0 2px var(--sidebar);
+  }
+  .sidebar-menu { grid-column: 1 / -1; display: none; gap: 1rem; padding-top: .9rem; }
+  .sidebar-menu[data-open="true"] { display: grid; }
+  .user-chip { margin: 0; }
   main { width: calc(100% - 2rem); margin: 1.5rem auto 3rem; }
   .panel { padding: 1.1rem 1rem; }
   .form-grid { grid-template-columns: 1fr; }
