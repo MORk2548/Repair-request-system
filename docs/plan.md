@@ -753,12 +753,12 @@ test('VersionConflictError shows reload message', /* … */);
 - Create: `supabase/migrations/0009_notifications.sql`, `supabase/tests/notifications.sql`, `packages/api/src/notifications.ts`, `packages/api/test/notifications.test.ts`, `apps/web/app/(app)/notifications/page.tsx`, `apps/web/components/NotificationList.tsx`, `apps/web/components/NotificationBell.tsx` (และเทสต์)
 - Modify: `supabase/functions/notify-ticket-event/{process.ts,process.test.ts,index.ts}`, `packages/api/src/{index.ts,rows.ts}`, `packages/api/src/database.types.ts` (`gen:types`), `apps/web/app/(app)/layout.tsx`, `apps/web/components/SideNav.tsx`, `apps/web/app/(app)/tickets/[id]/page.tsx`, `apps/web/app/globals.css`, `e2e/smoke.spec.ts`, `AGENTS.md`
 
-- [ ] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: เห็นเฉพาะแถวตัวเอง, insert ไม่ได้, แก้ `read_at` ของคนอื่นไม่ได้, แก้คอลัมน์อื่นไม่ได้, บัญชีที่ปิดใช้งานเห็น 0 แถว; `process.test.ts`: ผู้รับทุกคนได้แถว inbox แม้ไม่มี token หรืออีเมล, inbox ล้มเหลวแล้ว push ยังส่ง; api: รายการเรียงใหม่สุดก่อน, `countUnread`, อ่านแล้วตัวเลขลด
-- [ ] **Step 2: เขียน migration, ช่องทาง inbox ในฟังก์ชัน, api** `listNotifications(db, { limit })`, `countUnread(db)`, `markNotificationsRead(db, { ids } | { ticketId } | 'all')`
-- [ ] **Step 3: เว็บ** ลิงก์ "การแจ้งเตือน" ในแถบด้านข้างพร้อมป้ายจำนวนที่ยังไม่อ่าน (อ่านจาก layout และอัปเดตผ่าน Realtime ด้วย `router.refresh()`), หน้า `/notifications` แสดง 30 รายการล่าสุด (หัวข้อและข้อความจาก `messageFor`, เวลา `formatThaiDateTime`, รายการที่ยังไม่อ่านเด่นกว่า), คลิกแล้วทำเครื่องหมายว่าอ่านและเปิดใบ, ปุ่ม "อ่านทั้งหมด"; เปิดหน้าใบแล้วแจ้งเตือนของใบนั้นถือว่าอ่านแล้ว
-- [ ] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` (เพิ่มขั้น: หลัง admin มอบหมาย kittipong เห็นแจ้งเตือน "มอบหมายงาน" ของใบนั้น) แล้ว `corepack pnpm db:reset`
+- [x] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: เห็นเฉพาะแถวตัวเอง, insert ไม่ได้, แก้ `read_at` ของคนอื่นไม่ได้, แก้คอลัมน์อื่นไม่ได้, บัญชีที่ปิดใช้งานเห็น 0 แถว; `process.test.ts`: ผู้รับทุกคนได้แถว inbox แม้ไม่มี token หรืออีเมล, inbox ล้มเหลวแล้ว push ยังส่ง; api: รายการเรียงใหม่สุดก่อน, `countUnread`, อ่านแล้วตัวเลขลด
+- [x] **Step 2: เขียน migration, ช่องทาง inbox ในฟังก์ชัน, api** `listNotifications(db, { limit })`, `countUnread(db)`, `markNotificationsRead(db, { ids } | { ticketId } | 'all')`
+- [x] **Step 3: เว็บ** ลิงก์ "การแจ้งเตือน" ในแถบด้านข้างพร้อมป้ายจำนวนที่ยังไม่อ่าน (อ่านจาก layout และอัปเดตผ่าน Realtime ด้วย `router.refresh()`), หน้า `/notifications` แสดง 30 รายการล่าสุด (หัวข้อและข้อความจาก `messageFor`, เวลา `formatThaiDateTime`, รายการที่ยังไม่อ่านเด่นกว่า), คลิกแล้วทำเครื่องหมายว่าอ่านและเปิดใบ, ปุ่ม "อ่านทั้งหมด"; เปิดหน้าใบแล้วแจ้งเตือนของใบนั้นถือว่าอ่านแล้ว
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` (เพิ่มขั้น: หลัง admin มอบหมาย kittipong เห็นแจ้งเตือน "มอบหมายงาน" ของใบนั้น) แล้ว `corepack pnpm db:reset`
 - [ ] **Step 5: ขึ้น cloud** `supabase db push --remote` และ `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
-- [ ] **Step 6: Commit** `git commit -m "feat: in-app notifications on the web"`
+- [x] **Step 6: Commit** `git commit -m "feat: in-app notifications on the web"`
 
 ---
 

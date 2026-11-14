@@ -77,6 +77,14 @@ test.describe('full ticket cycle', () => {
 
   test('first technician hands the ticket over with a reason', async ({ browser }) => {
     const page = await signIn(browser, FIRST_TECH.email);
+    // delivery goes through pg_net and the Edge Function, so the item can take a while to appear
+    const inbox = page.getByRole('button', { name: /มอบหมายงาน RQ-/ }).filter({ hasText: TITLE });
+    await expect(async () => {
+      await page.goto('/notifications');
+      await expect(inbox).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
+    await inbox.click();
+    await expect(page).toHaveURL(ticketUrl);
     await page.goto(ticketUrl);
     await actions(page).getByRole('button', { name: 'ส่งต่อช่างคนอื่น' }).click();
     const picker = page.getByLabel('ช่างคนใหม่');
