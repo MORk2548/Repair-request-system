@@ -72,7 +72,11 @@ export async function saveEquipment(db: Db, { id, ...input }: WithId<EquipmentIn
   const row = {
     asset_tag: v.assetTag,
     name: v.name,
+    model: v.model,
     serial_no: v.serialNo,
+    monitor_model: v.monitorModel,
+    monitor_serial_no: v.monitorSerialNo,
+    user_name: v.userName,
     department_id: v.departmentId,
     install_location: v.installLocation,
     status: v.status,

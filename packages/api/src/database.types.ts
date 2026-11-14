@@ -53,14 +53,14 @@ export type Database = {
                   ]
                 },"equipment": {
                   Row: {
-                    "asset_tag": string,"department_id": number | null,"id": number,"install_location": string | null,"name": string,"serial_no": string | null,"status": Database["public"]['Enums']["equipment_status"]
+                    "asset_tag": string,"department_id": number | null,"id": number,"install_location": string | null,"model": string | null,"monitor_model": string | null,"monitor_serial_no": string | null,"name": string,"serial_no": string | null,"status": Database["public"]['Enums']["equipment_status"],"user_name": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "asset_tag": string,"department_id"?: number | null,"id"?: never,"install_location"?: string | null,"name": string,"serial_no"?: string | null,"status"?: Database["public"]['Enums']["equipment_status"]
+                    "asset_tag": string,"department_id"?: number | null,"id"?: never,"install_location"?: string | null,"model"?: string | null,"monitor_model"?: string | null,"monitor_serial_no"?: string | null,"name": string,"serial_no"?: string | null,"status"?: Database["public"]['Enums']["equipment_status"],"user_name"?: string | null
                   }
                   Update: {
-                    "asset_tag"?: string,"department_id"?: number | null,"id"?: never,"install_location"?: string | null,"name"?: string,"serial_no"?: string | null,"status"?: Database["public"]['Enums']["equipment_status"]
+                    "asset_tag"?: string,"department_id"?: number | null,"id"?: never,"install_location"?: string | null,"model"?: string | null,"monitor_model"?: string | null,"monitor_serial_no"?: string | null,"name"?: string,"serial_no"?: string | null,"status"?: Database["public"]['Enums']["equipment_status"],"user_name"?: string | null
                   }
                   Relationships: [
                     {

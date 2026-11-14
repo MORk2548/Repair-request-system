@@ -66,7 +66,11 @@ export type CategoryInput = z.output<typeof categorySchema>;
 export const equipmentSchema = z.object({
   assetTag: requiredText('รหัสทรัพย์สิน', 1, 50),
   name: requiredText('ชื่ออุปกรณ์', 1, 100),
+  model: optionalText('รุ่นเครื่อง', 100),
   serialNo: optionalText('หมายเลขเครื่อง', 100),
+  monitorModel: optionalText('รุ่นจอ', 100),
+  monitorSerialNo: optionalText('หมายเลขจอ', 100),
+  userName: optionalText('ผู้ใช้งาน', 100),
   departmentId,
   installLocation: optionalText('สถานที่ติดตั้ง', 100),
   status: z.enum(EQUIPMENT_STATUSES),

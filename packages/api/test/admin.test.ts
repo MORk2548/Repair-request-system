@@ -18,7 +18,18 @@ beforeAll(async () => {
   [reporter, admin] = await Promise.all([newUser('reporter'), newUser('admin')]);
 });
 
-const equipment = { assetTag: `${tag}-EQ`, name: 'เครื่องปรับอากาศ', serialNo: '  ', departmentId: null, installLocation: 'ห้อง 1', status: 'active' as const };
+const equipment = {
+  assetTag: `${tag}-EQ`,
+  name: 'front 01',
+  model: 'OptiPlex 3070',
+  serialNo: '  ',
+  monitorModel: 'HP P19',
+  monitorSerialNo: '6CM4191G2Y',
+  userName: 'พี่มณี',
+  departmentId: null,
+  installLocation: 'ห้อง 1',
+  status: 'active' as const,
+};
 
 test('admin adds and renames a department, then switches it off', async () => {
   const added = await saveDepartment(admin.db, { name: `แผนก ${tag}`, isActive: true });
@@ -45,9 +56,18 @@ test('a reporter cannot add or change lookups', async () => {
   expect(data).toEqual({ name: `ล็อก ${tag}`, is_active: true });
 });
 
-test('saveEquipment stores a blank serial as null and refuses a duplicate asset tag', async () => {
+test('saveEquipment stores the PC, its monitor and its user, a blank serial as null, and refuses a duplicate asset tag', async () => {
   const added = await saveEquipment(admin.db, equipment);
-  expect(added).toMatchObject({ assetTag: `${tag}-EQ`, serialNo: null, installLocation: 'ห้อง 1', status: 'active' });
+  expect(added).toMatchObject({
+    assetTag: `${tag}-EQ`,
+    model: 'OptiPlex 3070',
+    serialNo: null,
+    monitorModel: 'HP P19',
+    monitorSerialNo: '6CM4191G2Y',
+    userName: 'พี่มณี',
+    installLocation: 'ห้อง 1',
+    status: 'active',
+  });
   expect(await saveEquipment(admin.db, { ...added, status: 'retired' })).toMatchObject({ id: added.id, status: 'retired' });
   await expect(saveEquipment(admin.db, equipment)).rejects.toBeInstanceOf(DuplicateAssetTagError);
 });

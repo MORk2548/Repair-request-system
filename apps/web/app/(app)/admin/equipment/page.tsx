@@ -22,7 +22,10 @@ export default async function AdminEquipmentPage() {
             <tr>
               <th>รหัสทรัพย์สิน</th>
               <th>ชื่อ</th>
-              <th>หมายเลขเครื่อง</th>
+              <th>รุ่นเครื่อง</th>
+              <th>SN เครื่อง</th>
+              <th>จอ (รุ่น · SN)</th>
+              <th>ผู้ใช้งาน</th>
               <th>แผนก</th>
               <th>สถานที่ติดตั้ง</th>
               <th>สถานะ</th>
