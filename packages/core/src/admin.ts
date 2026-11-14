@@ -73,9 +73,3 @@ export const equipmentSchema = z.object({
 });
 export type EquipmentInput = z.output<typeof equipmentSchema>;
 
-export const setPasswordSchema = z
-  .object({
-    password: z.string().min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร').max(72, 'รหัสผ่านยาวได้ไม่เกิน 72 ตัวอักษร'),
-    confirm: z.string(),
-  })
-  .refine((v) => v.password === v.confirm, { message: 'รหัสผ่านทั้งสองช่องไม่ตรงกัน', path: ['confirm'] });

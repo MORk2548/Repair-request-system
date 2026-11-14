@@ -27,7 +27,8 @@ export type TestUser = { id: string; email: string; password: string; db: Db };
 
 export async function newUser(role: Role): Promise<TestUser> {
   const email = `${role}-${crypto.randomUUID()}@test.local`;
-  const password = crypto.randomUUID();
+  // Auth requires upper, lower and a digit (supabase/config.toml password_requirements)
+  const password = `Aa1-${crypto.randomUUID()}`;
   const { user } = must(await service.auth.admin.createUser({ email, password, email_confirm: true }));
   must(await service.from('profiles').insert({ id: user.id, display_name: email, role }).select().single());
   const db: Db = createClient<Database>(env.url, env.anonKey, noSession);

@@ -234,6 +234,8 @@ main { width: min(70rem, calc(100% - 3rem)); margin: 2.5rem auto 4rem; }
 }
 .field :is(input, select, textarea):focus { border-color: var(--primary); }
 .field [aria-invalid="true"] { border-color: var(--danger); }
+.password-rules { margin: -.4rem 0 1rem; padding: 0; list-style: none; display: grid; gap: .2rem; color: var(--muted); font-size: .8125rem; }
+.password-rules .rule-ok { color: var(--success); }
 .password-field { position: relative; }
 .field .password-field input { padding-right: 3rem; }
 .password-toggle {
