@@ -39,3 +39,16 @@ test('a strong password is saved', async () => {
   expect(auth.updateUser).toHaveBeenCalledWith({ password: 'Mango7Tree' });
   await vi.waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
 });
+
+test('each password field has its own show-password button', () => {
+  render(<SetPasswordForm />);
+  const confirm = screen.getByLabelText('ยืนยันรหัสผ่าน');
+  const toggle = screen.getByRole('button', { name: 'แสดงรหัสผ่านยืนยัน' });
+  expect(confirm.getAttribute('type')).toBe('password');
+  fireEvent.click(toggle);
+  expect(confirm.getAttribute('type')).toBe('text');
+  expect(toggle.getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByLabelText('รหัสผ่านใหม่').getAttribute('type')).toBe('password');
+  fireEvent.click(screen.getByRole('button', { name: 'แสดงรหัสผ่านใหม่' }));
+  expect(screen.getByLabelText('รหัสผ่านใหม่').getAttribute('type')).toBe('text');
+});
