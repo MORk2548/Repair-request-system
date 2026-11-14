@@ -100,7 +100,7 @@ test('sends one email per recipient that has an address, with key `${event.id}:$
 });
 
 test('recipient without email still gets push; recipient without token still gets email', async () => {
-  contacts[TECH] = { pushToken: 'tok-t', email: null };
+  contacts[TECH] = { pushToken: 'tok-t', email: null, webPush: [] };
   try {
     const r = await processEvent(event({ toStatus: 'done', actorId: REPORTER, reporterId: TECH }), deps);
     expect(deps.sendPush.mock.calls.map((c) => c[0])).toEqual(['tok-t']);
