@@ -41,6 +41,12 @@ corepack pnpm exec supabase functions deploy admin-users notify-ticket-event --r
 corepack pnpm exec supabase secrets set NOTIFY_WEBHOOK_SECRET=<ค่าสุ่มยาว> WEB_BASE_URL=<ที่อยู่เว็บจริง> --remote
 ```
 
+แจ้งเตือนขึ้นหน้าจอ (Web Push) ฟรีและไม่ต้องมีโดเมน สร้างกุญแจครั้งเดียวด้วย `npx web-push@3.6.7 generate-vapid-keys` แล้วตั้งค่า (ห้ามเอา private key ไปไว้ที่ Vercel หรือใน repo)
+
+```powershell
+corepack pnpm exec supabase secrets set VAPID_SUBJECT=<ที่อยู่เว็บจริง> VAPID_PUBLIC_KEY=<public key> VAPID_PRIVATE_KEY=<private key> --remote
+```
+
 คำสั่งของ Supabase CLI ต้องมี `--remote` ไม่งั้นจะทำกับฐานข้อมูลในเครื่อง
 
 จากนั้นรันใน SQL editor ของ project (ค่า secret ต้องตรงกับ `NOTIFY_WEBHOOK_SECRET`)
@@ -65,6 +71,7 @@ admin คนแรก: สร้างผู้ใช้ใน Authentication �
 3. Environment Variables
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://<project-ref>.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key ของ project (Project Settings → API) ห้ามใช้ service role key
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = public key ตัวเดียวกับ `VAPID_PUBLIC_KEY` (ถ้าไม่ใส่ หน้า "ตั้งค่า" จะบอกว่าไม่รองรับการแจ้งเตือนขึ้นหน้าจอ)
 4. กด Deploy
 5. เอาที่อยู่ที่ได้ (เช่น `https://<ชื่อ>.vercel.app`) ไปใส่ใน Site URL และ Redirect URL ของ Supabase และตั้ง `WEB_BASE_URL` ของฟังก์ชันใหม่ด้วยคำสั่ง `secrets set` ข้างบน
 

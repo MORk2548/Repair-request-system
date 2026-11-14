@@ -774,15 +774,15 @@ Task 13 แจ้งเตือนได้เฉพาะตอนเปิด
 - เว็บ: `public/sw.js` แสดงแจ้งเตือนและเปิด `/tickets/<id>` เมื่อกด, `app/manifest.ts` ให้ iPhone เพิ่มไปยังหน้าจอโฮมเป็นแอปได้, หน้า "ตั้งค่า" มีปุ่มเปิดหรือปิดการแจ้งเตือนบนอุปกรณ์นี้ (บอกเหตุผลเป็นภาษาไทยเมื่อเบราว์เซอร์ไม่รองรับหรือถูกปฏิเสธสิทธิ์), ออกจากระบบแล้วลบ subscription ของเบราว์เซอร์นี้ก่อน
 
 **Files:**
-- Create: `supabase/migrations/0010_web_push.sql`, `supabase/tests/web_push.sql`, `supabase/functions/notify-ticket-event/webpush.ts` (และเทสต์), `packages/api/src/webPush.ts`, `packages/api/test/webPush.test.ts`, `apps/web/public/sw.js`, `apps/web/app/manifest.ts`, `apps/web/components/PushToggle.tsx` (และเทสต์), `apps/web/lib/webPush.ts`
-- Modify: `supabase/functions/notify-ticket-event/{process.ts,process.test.ts,index.ts,deno.json}`, `supabase/functions/.env.example`, `packages/api/src/{index.ts,database.types.ts}`, `apps/web/middleware.ts`, `apps/web/components/SignOutButton.tsx`, `apps/web/app/(app)/settings/page.tsx`, `apps/web/.env.example`, `README.md`, `AGENTS.md`
+- Create: `supabase/migrations/0010_web_push.sql`, `supabase/tests/web_push.sql`, `packages/api/src/webPush.ts`, `packages/api/test/webPush.test.ts`, `apps/web/public/sw.js`, `apps/web/app/manifest.ts`, `apps/web/components/PushToggle.tsx` (และเทสต์), `apps/web/lib/webPush.ts`
+- Modify: `supabase/functions/notify-ticket-event/{process.ts,process.test.ts,index.ts}`, `supabase/functions/.env.example`, `packages/api/src/{index.ts,database.types.ts}`, `apps/web/middleware.ts`, `apps/web/components/SignOutButton.tsx`, `apps/web/app/(app)/settings/page.tsx`, `apps/web/.env.example`, `apps/web/public/icon.svg`, `README.md`, `AGENTS.md`
 
-- [ ] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: RPC ผูก endpoint กับผู้เรียกและย้ายจากคนอื่น, เห็นและลบได้เฉพาะแถวตัวเอง, insert ตรงไม่ได้, บัญชีที่ปิดใช้งานเรียก RPC ไม่ได้; `process.test.ts`: ส่งทุกเบราว์เซอร์ของผู้รับ, ไม่มี subscription นับ skipped, web push ล้มเหลวแล้วช่องทางอื่นยังส่ง; api: save แล้ว list เห็น, delete แล้วหาย
-- [ ] **Step 2: migration, ช่องทาง web ในฟังก์ชัน, api** `saveWebPushSubscription(db, sub)`, `deleteWebPushSubscription(db, endpoint)`
-- [ ] **Step 3: เว็บ** service worker, manifest, `PushToggle`, ออกจากระบบแล้วลบ subscription
-- [ ] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` และลองจริงในเบราว์เซอร์กับ stack ในเครื่อง แล้ว `corepack pnpm db:reset`
+- [x] **Step 1: เทสต์ที่ล้มเหลว** pgTAP: RPC ผูก endpoint กับผู้เรียกและย้ายจากคนอื่น, เห็นและลบได้เฉพาะแถวตัวเอง, insert ตรงไม่ได้, บัญชีที่ปิดใช้งานเรียก RPC ไม่ได้; `process.test.ts`: ส่งทุกเบราว์เซอร์ของผู้รับ, ไม่มี subscription นับ skipped, web push ล้มเหลวแล้วช่องทางอื่นยังส่ง; api: save แล้ว list เห็น, delete แล้วหาย
+- [x] **Step 2: migration, ช่องทาง web ในฟังก์ชัน, api** `saveWebPushSubscription(db, sub)`, `deleteWebPushSubscription(db, endpoint)`
+- [x] **Step 3: เว็บ** service worker, manifest, `PushToggle`, ออกจากระบบแล้วลบ subscription
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm test:db`, `corepack pnpm typecheck`, `corepack pnpm test:e2e` และลองจริงในเบราว์เซอร์กับ stack ในเครื่อง แล้ว `corepack pnpm db:reset`
 - [ ] **Step 5: ขึ้น cloud** สร้างกุญแจ VAPID, ตั้ง secret ของฟังก์ชันและ `NEXT_PUBLIC_VAPID_PUBLIC_KEY` บน Vercel, `supabase db push --remote`, `supabase functions deploy notify-ticket-event --remote` (ผู้ใช้อนุมัติก่อน)
-- [ ] **Step 6: Commit** `git commit -m "feat: web push notifications"`
+- [x] **Step 6: Commit** `git commit -m "feat: web push notifications"`
 
 ---
 
