@@ -1,4 +1,4 @@
-import type { Role, Ticket, TicketEventAction } from '@repair/core';
+import type { Role, Ticket, TicketEventAction, TicketStatus } from '@repair/core';
 import type { Tables } from './database.types';
 
 export type Comment = { id: number; ticketId: string; authorId: string; body: string; createdAt: string };
@@ -106,3 +106,30 @@ export const toProfile = (r: Pick<Tables<'profiles'>, 'id' | 'display_name' | 'r
 
 // views report every column nullable; technician_options only selects not-null profile columns
 export const toTechnician = (r: Tables<'technician_options'>): Technician => ({ id: r.id!, displayName: r.display_name! });
+
+export type Notification = {
+  id: number;
+  ticketId: string;
+  ticketNo: string;
+  title: string;
+  toStatus: TicketStatus;
+  createdAt: string;
+  readAt: string | null;
+};
+
+type NotificationRow = Pick<Tables<'notifications'>, 'id' | 'read_at'> & {
+  ticket_events: Pick<Tables<'ticket_events'>, 'ticket_id' | 'to_status' | 'created_at'> & {
+    tickets: Pick<Tables<'tickets'>, 'ticket_no' | 'title'>;
+  };
+};
+
+// the trigger only queues events that have a to_status, so every notification has one
+export const toNotification = (r: NotificationRow): Notification => ({
+  id: r.id,
+  ticketId: r.ticket_events.ticket_id,
+  ticketNo: r.ticket_events.tickets.ticket_no,
+  title: r.ticket_events.tickets.title,
+  toStatus: r.ticket_events.to_status!,
+  createdAt: r.ticket_events.created_at,
+  readAt: r.read_at,
+});
