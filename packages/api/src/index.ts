@@ -9,3 +9,4 @@ export * from './lookups';
 export * from './admin';
 export * from './reports';
 export * from './notifications';
+export * from './webPush';

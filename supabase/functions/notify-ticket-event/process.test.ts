@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { handle, processEvent, type Deps } from './process.ts';
+import { handle, processEvent, type Contact, type Deps } from './process.ts';
 
 const TICKET = '10000000-0000-4000-8000-000000000001';
 const REPORTER = '00000000-0000-4000-8000-00000000000a';
@@ -7,13 +7,13 @@ const TECH = '00000000-0000-4000-8000-00000000000c';
 const ADMIN = '00000000-0000-4000-8000-00000000000e';
 const SECRET = 'webhook-secret';
 
-const contacts: Record<string, { pushToken: string | null; email: string | null }> = {
-  [REPORTER]: { pushToken: 'tok-r', email: 'r@x.test' },
-  [TECH]: { pushToken: 'tok-t', email: 't@x.test' },
-  [ADMIN]: { pushToken: null, email: 'a@x.test' },
+const contacts: Record<string, Contact> = {
+  [REPORTER]: { pushToken: 'tok-r', email: 'r@x.test', webPush: [] },
+  [TECH]: { pushToken: 'tok-t', email: 't@x.test', webPush: [] },
+  [ADMIN]: { pushToken: null, email: 'a@x.test', webPush: [] },
 };
 
-type Fn = 'loadTicket' | 'listStaffIds' | 'getContact' | 'sendPush' | 'sendEmail' | 'saveInbox';
+type Fn = 'loadTicket' | 'listStaffIds' | 'getContact' | 'sendPush' | 'sendEmail' | 'sendWebPush' | 'saveInbox';
 let deps: { [K in Fn]: ReturnType<typeof vi.fn<Deps[K]>> } & Pick<Deps, 'webBaseUrl' | 'emailEnabled'>;
 
 beforeEach(() => {
@@ -23,6 +23,7 @@ beforeEach(() => {
     getContact: vi.fn(async (userId) => contacts[userId] ?? null),
     sendPush: vi.fn(async () => {}),
     sendEmail: vi.fn(async () => {}),
+    sendWebPush: vi.fn(async () => {}),
     saveInbox: vi.fn(async () => {}),
     webBaseUrl: 'https://web.test/',
     emailEnabled: true,
@@ -33,9 +34,12 @@ beforeEach(() => {
 const event = (over: Partial<Parameters<typeof processEvent>[0]> = {}) =>
   ({ id: '1', ticketId: TICKET, actorId: ADMIN, toStatus: 'assigned', reporterId: REPORTER, assigneeId: TECH, ...over }) as const;
 
-const counts = (push: [number, number, number], email: [number, number, number], inbox: [number, number, number] = [0, 0, 0]) => ({
+type Triple = [number, number, number];
+// nobody in contacts has a browser subscription, so by default every recipient counts as skipped for web
+const counts = (push: Triple, email: Triple, inbox: Triple = [0, 0, 0], web: Triple = [0, 0, push[0] + push[1] + push[2]]) => ({
   push: { sent: push[0], failed: push[1], skipped: push[2] },
   email: { sent: email[0], failed: email[1], skipped: email[2] },
+  web: { sent: web[0], failed: web[1], skipped: web[2] },
   inbox: { sent: inbox[0], failed: inbox[1], skipped: inbox[2] },
 });
 
@@ -103,7 +107,7 @@ test('recipient without email still gets push; recipient without token still get
     expect(deps.sendEmail.mock.calls.map((c) => c[0])).toEqual(['a@x.test']);
     expect(r).toEqual(counts([1, 0, 1], [1, 0, 1], [2, 0, 0]));
   } finally {
-    contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test' };
+    contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test', webPush: [] };
   }
 });
 
@@ -173,7 +177,7 @@ test('a valid event is processed and answers 200 with the counts per channel', a
 });
 
 test('every recipient gets an inbox row in one call, even without a push token or an email', async () => {
-  contacts[TECH] = { pushToken: null, email: null };
+  contacts[TECH] = { pushToken: null, email: null, webPush: [] };
   try {
     const r = await processEvent(event({ id: '7' }), deps);
     expect(deps.saveInbox).toHaveBeenCalledTimes(1);
@@ -181,7 +185,7 @@ test('every recipient gets an inbox row in one call, even without a push token o
     expect(vi.mocked(deps.saveInbox).mock.calls[0]![1]).toHaveLength(2);
     expect(r.inbox).toEqual({ sent: 2, failed: 0, skipped: 0 });
   } finally {
-    contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test' };
+    contacts[TECH] = { pushToken: 'tok-t', email: 't@x.test', webPush: [] };
   }
 });
 
@@ -203,4 +207,32 @@ test('an event with no recipients writes no inbox rows', async () => {
   const r = await processEvent(event({ toStatus: 'in_progress', actorId: REPORTER, assigneeId: null }), deps);
   expect(deps.saveInbox).not.toHaveBeenCalled();
   expect(r.inbox).toEqual({ sent: 0, failed: 0, skipped: 0 });
+});
+
+const browser = (n: number) => ({ endpoint: `https://push.test/${n}`, p256dh: `p${n}`, auth: `a${n}` });
+
+test('web push goes to every browser of a recipient, and a recipient without one is skipped', async () => {
+  contacts[TECH] = { ...contacts[TECH]!, webPush: [browser(1), browser(2)] };
+  try {
+    const r = await processEvent(event(), deps);
+    expect(deps.sendWebPush.mock.calls.map((c) => c[0].endpoint)).toEqual(['https://push.test/1', 'https://push.test/2']);
+    expect(deps.sendWebPush.mock.calls[0]![1]).toMatchObject({ title: expect.stringContaining('RQ-2611-0001'), body: expect.any(String), ticketId: TICKET });
+    expect(r.web).toEqual({ sent: 1, failed: 0, skipped: 1 });
+  } finally {
+    contacts[TECH] = { ...contacts[TECH]!, webPush: [] };
+  }
+});
+
+test('one failed browser marks the recipient failed and push, email and the other browsers still go out', async () => {
+  contacts[TECH] = { ...contacts[TECH]!, webPush: [browser(1), browser(2)] };
+  deps.sendWebPush.mockImplementation(async (s) => {
+    if (s.endpoint.endsWith('1')) throw new Error('gone');
+  });
+  try {
+    const r = await processEvent(event(), deps);
+    expect(deps.sendWebPush).toHaveBeenCalledTimes(2);
+    expect(r).toEqual(counts([2, 0, 0], [2, 0, 0], [2, 0, 0], [0, 1, 1]));
+  } finally {
+    contacts[TECH] = { ...contacts[TECH]!, webPush: [] };
+  }
 });
