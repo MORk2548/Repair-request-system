@@ -1,17 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { createBrowserDb } from '../lib/supabase-browser';
 
 export function SignOutButton() {
-  const router = useRouter();
   return (
     <button
       type="button"
       onClick={async () => {
         await createBrowserDb().auth.signOut();
-        router.replace('/login');
-        router.refresh();
+        // a full load drops Next's client cache, so going back reaches the middleware instead of a cached signed-in page
+        window.location.replace('/login');
       }}
     >
       ออกจากระบบ

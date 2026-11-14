@@ -82,8 +82,8 @@ export function StatusActions({
     if (panel.kind === 'assign') void run((db) => transitionTicket(db, { ...base, to: 'assigned', assigneeId: assignee }));
     if (panel.kind === 'done') void run((db) => transitionTicket(db, { ...base, to: 'done', resolution: parsedResolution.data! }));
     if (panel.kind === 'reassign') {
-      // a technician who hands the ticket over can no longer see it, so refreshing would land on the not-found page
-      const after = user.role === 'technician' ? () => router.push('/tickets') : undefined;
+      // a technician who hands the ticket over can no longer see it, so refreshing (or going back to it) would land on the not-found page
+      const after = user.role === 'technician' ? () => router.replace('/tickets') : undefined;
       void run((db) => reassignTicket(db, { ...base, assigneeId: assignee, reason: reason.trim() }), after);
     }
   }

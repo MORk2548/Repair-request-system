@@ -720,6 +720,28 @@ test('VersionConflictError shows reload message', /* … */);
 
 ---
 
+### Task 12.8: ปุ่มย้อนกลับ/ไปข้างหน้าของเบราว์เซอร์บนเว็บ
+
+ตรวจแล้วเว็บไม่มี `window.location`, `pushState`/`replaceState` หรือ `popstate` เอง การเปลี่ยนหน้าทั้งหมดเป็น `Link`/`router` ของ Next และ redirect ใน `middleware.ts` ทดสอบในเบราว์เซอร์จริง (Supabase จำลอง เพราะเครื่องที่ทำงานไม่มี Docker) พบสามสาเหตุ:
+
+1. หลังทำรายการที่จบแล้ว แอป `router.push` ไปหน้ารายการ ทำให้ประวัติมีหน้าที่ไม่ควรกลับไป: ส่งใบแจ้งซ่อมแล้วกดย้อนกลับได้ฟอร์มแจ้งซ่อมอีกครั้ง (`TicketForm`) และช่างที่ส่งต่องานกดย้อนกลับได้ใบที่ตัวเองไม่มีสิทธิ์ดูแล้ว (`StatusActions`) → ใช้ `router.replace`
+2. ออกจากระบบในแท็บอื่นแล้ว แท็บนี้ยังเปิดหน้าที่ต้องล็อกอินได้ด้วยปุ่มย้อนกลับ เพราะ Next คืนหน้าจาก router cache ของแท็บโดยไม่ถามเซิร์ฟเวอร์ (middleware ไม่ได้ทำงาน) → `AuthWatcher` ใน root layout ฟัง `onAuthStateChange` (Supabase แจ้งทุกแท็บ) เมื่อ `SIGNED_OUT` ไป `/login` แบบโหลดหน้าใหม่ (`location.replace`) ซึ่งทิ้ง cache ทั้งหมด และเมื่อเบราว์เซอร์คืนหน้าจาก back-forward cache (`pageshow` ที่ `persisted`) ให้ `router.refresh()` เพื่อให้เซิร์ฟเวอร์ตรวจ session ใหม่
+3. ปุ่มออกจากระบบใช้ `router.replace` + `router.refresh` ซึ่งยังอยู่ในเอกสารเดิม ย้อนกลับแล้วบางขั้น URL เป็น `/tickets` แต่เนื้อหาไม่ตรง → หลัง `signOut` ใช้ `location.replace('/login')` ให้ทุกหน้าก่อนหน้าต้องโหลดผ่าน middleware ใหม่
+
+ไม่แตะฐานข้อมูล RLS หรือ middleware; หน้าตาเหมือนเดิม
+
+**Files:**
+- Create: `apps/web/components/AuthWatcher.tsx`, `apps/web/components/AuthWatcher.test.tsx`, `apps/web/components/SignOutButton.test.tsx`
+- Modify: `apps/web/app/layout.tsx`, `apps/web/components/SignOutButton.tsx`, `apps/web/components/TicketForm.tsx`, `apps/web/components/TicketForm.test.tsx`, `apps/web/components/StatusActions.tsx`, `apps/web/components/StatusActions.test.tsx`
+
+- [x] **Step 1: เขียนเทสต์ที่ล้มเหลว**: ส่งใบสำเร็จเรียก `router.replace('/tickets')` ไม่ใช่ `push`; ช่างส่งต่องานเรียก `router.replace('/tickets')`; `AuthWatcher` เมื่อได้ `SIGNED_OUT` บนหน้าที่ต้องล็อกอินเรียก `location.replace('/login')` แต่บน `/login` ไม่เรียก, เมื่อ `pageshow` ที่ `persisted` เรียก `router.refresh()` และเลิกฟังเมื่อ unmount; `SignOutButton` ออกจากระบบแล้ว `location.replace('/login')`
+- [x] **Step 2: รัน** `corepack pnpm --filter web test` — คาดว่า FAIL
+- [x] **Step 3: แก้โค้ดตามสาเหตุข้างบน**
+- [x] **Step 4: รัน** `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm --filter web build` แล้วรันขั้นทดสอบในเบราว์เซอร์: ล็อกอิน → รายการใบ → เมนูอื่น → ย้อนกลับ → ไปข้างหน้า → รีเฟรช → ส่งใบแล้วย้อนกลับ → ออกจากระบบแล้วย้อนกลับ/ไปข้างหน้า → เปิด URL ที่ต้องล็อกอินตรง ๆ → ออกจากระบบจากอีกแท็บแล้วย้อนกลับ
+- [x] **Step 5: Commit** `git commit -m "fix(web): browser back and forward after filing, handing over and signing out"`
+
+---
+
 ## Self-Review
 
 1. **Spec coverage:** แจ้งซ่อม+รูป (T5, 6, 10), มอบหมาย/อัปเดตสถานะ + วิธีแก้ไข (T4, 7, 11), สิทธิ์ตามบทบาทและบัญชีที่ปิดใช้งาน (T3, 4, 7.5), แผนก/หมวด/อุปกรณ์ตาม ER (T3, 5, 7.5), รับงานเอง/ส่งต่อช่างตาม flow chart (T1, 3, 4, 7), รายงานสรุป (T7.6), แจ้งเตือน push (T8, 11) และอีเมล (T9), เว็บ (T6–7.5), แอป (T10–11), seed จากโปรเจกต์เดิม + ปล่อยใช้งาน (T12) — ครบตาม Assumptions และ ER

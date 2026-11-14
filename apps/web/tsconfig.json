@@ -1,16 +1,36 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "jsx": "preserve",
     "allowJs": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "incremental": true,
     "noUncheckedSideEffectImports": false,
-    "types": ["node", "next"],
-    "plugins": [{ "name": "next" }]
+    "types": [
+      "node",
+      "next"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next-e2e/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-e2e/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-nav/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

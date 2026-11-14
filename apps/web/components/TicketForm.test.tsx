@@ -61,7 +61,8 @@ test('double click on submit calls createTicket once and the button stays disabl
   expect((submitButton() as HTMLButtonElement).disabled).toBe(true);
 
   resolve(ticket);
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith('/tickets'));
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
+  expect(router.push).not.toHaveBeenCalled();
   expect(createTicket).toHaveBeenCalledTimes(1);
 });
 
@@ -75,7 +76,7 @@ test('a failed createTicket keeps the typed title and the retry reuses the same 
   expect((screen.getByLabelText('หัวข้อ') as HTMLInputElement).value).toBe('แอร์ไม่เย็น');
 
   await user.click(submitButton());
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith('/tickets'));
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
   expect(requestIds()).toHaveLength(2);
   expect(requestIds()[1]).toBe(requestIds()[0]);
 });
@@ -92,10 +93,10 @@ test('photo upload failure keeps the ticket and shows retry button', async () =>
 
   await user.click(submitButton());
   expect(await screen.findByText('สร้างใบแจ้งซ่อมแล้ว แต่อัปโหลดรูปไม่สำเร็จ')).toBeTruthy();
-  expect(router.push).not.toHaveBeenCalled();
+  expect(router.replace).not.toHaveBeenCalled();
 
   await user.click(screen.getByRole('button', { name: 'ลองอัปโหลดรูปอีกครั้ง' }));
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith('/tickets'));
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
   expect(vi.mocked(attachPhoto).mock.calls.map(([, id, file]) => [id, file.name])).toEqual([
     ['t-1', 'a.png'],
     ['t-1', 'b.png'],

@@ -89,7 +89,8 @@ export function TicketForm({ categories }: { categories: Category[] }) {
       }
     }
     setPhotos(failed);
-    if (failed.length === 0) router.push('/tickets');
+    // replace: a filed ticket's form must not come back with the back button
+    if (failed.length === 0) router.replace('/tickets');
   }
 
   async function run(step: () => Promise<void>) {

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans_Thai } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Aurora } from '../components/Aurora';
+import { AuthWatcher } from '../components/AuthWatcher';
 import { getThemeId, themeCss } from '../lib/theme';
 import './globals.css';
 
@@ -21,6 +22,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </head>
       <body className={font.className}>
         <Aurora />
+        <AuthWatcher />
         {children}
       </body>
     </html>

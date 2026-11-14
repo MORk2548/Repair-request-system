@@ -105,7 +105,9 @@ test('a technician who hands a ticket over goes back to the list, since they can
   await user.selectOptions(screen.getByLabelText('ช่างคนใหม่'), 'อรทัย');
   await user.type(screen.getByLabelText('เหตุผล'), 'ต้องใช้ช่างไฟฟ้า');
   await user.click(screen.getByRole('button', { name: 'ยืนยัน' }));
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith('/tickets'));
+  // replace, so the back button cannot reopen a ticket they may no longer see
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tickets'));
+  expect(router.push).not.toHaveBeenCalled();
 });
 
 test('VersionConflictError shows "มีผู้อื่นอัปเดตใบนี้แล้ว กรุณาโหลดใหม่" and a reload button, ticket state unchanged', async () => {
