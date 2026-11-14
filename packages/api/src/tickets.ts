@@ -136,3 +136,14 @@ export async function reassignTicket(
   if (error) throwDbError(error);
   return toTicket(data);
 }
+
+// Admin only. The ticket, its events, comments, attachment rows and notifications go in one transaction; the
+// photo files go after it, because Storage is not part of that transaction. A failure there only leaves files
+// no ticket points at, so it is logged instead of reported as a failed delete.
+export async function deleteTicket(db: Db, ticketId: string): Promise<void> {
+  const { data: paths, error } = await db.rpc('delete_ticket', { p_ticket_id: ticketId });
+  if (error) throwDbError(error);
+  if (paths.length === 0) return;
+  const removed = await db.storage.from('ticket-photos').remove(paths);
+  if (removed.error) console.warn('deleteTicket: photo files left behind', removed.error.message);
+}
