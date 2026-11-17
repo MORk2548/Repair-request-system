@@ -4,6 +4,7 @@ import { DuplicateAssetTagError, saveEquipment, type Department, type Equipment 
 import { EQUIPMENT_STATUSES, EQUIPMENT_STATUS_LABELS, equipmentSchema, type EquipmentStatus } from '@repair/core';
 import { useState, type FormEvent } from 'react';
 import { Field, fieldErrors } from './Field';
+import { toast } from './Toast';
 import { ActionError, useAction } from './useAction';
 
 const COLUMNS = 10;
@@ -90,6 +91,7 @@ export function EquipmentForm({ equipment, departments, onDone }: { equipment?: 
       return true;
     };
     if (!(await run((db) => saveEquipment(db, { id: equipment?.id, ...parsed.data }), duplicate))) return;
+    toast(`${equipment ? 'บันทึก' : 'เพิ่ม'}อุปกรณ์ ${parsed.data.assetTag} แล้ว`);
     if (!equipment) setFields(fieldsOf());
     onDone?.();
   }

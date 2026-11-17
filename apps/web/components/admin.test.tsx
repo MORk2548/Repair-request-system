@@ -7,6 +7,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { EquipmentForm } from './EquipmentRow';
 import { InviteUserForm } from './InviteUserForm';
 import { LookupRow } from './LookupRow';
+import { Toaster } from './Toast';
 import { UserRow } from './UserRow';
 
 vi.mock('@repair/api', async (importOriginal) => ({
@@ -114,4 +115,13 @@ test('a duplicate asset tag is shown on the asset tag field', async () => {
   expect(document.getElementById(tag.getAttribute('aria-describedby')!)?.textContent).toBe('รหัสทรัพย์สินนี้มีอยู่แล้ว');
   expect(saveEquipment).toHaveBeenCalledWith({}, expect.objectContaining({ assetTag: 'AC-0001', serialNo: null, monitorSerialNo: '6CM4191G2Y', userName: 'พี่มณี', status: 'active' }));
   expect(router.refresh).not.toHaveBeenCalled();
+});
+
+test('a saved row confirms it in the page toast after its edit form closes', async () => {
+  vi.mocked(saveCategory).mockResolvedValue({ id: 4, name: 'ประปา', sortOrder: 2, isActive: false });
+  const u = userEvent.setup();
+  render(<Toaster />);
+  inTable(<LookupRow kind="category" item={{ id: 4, name: 'ประปา', sortOrder: 2, isActive: true }} />);
+  await u.click(screen.getByRole('button', { name: 'ปิดใช้งาน' }));
+  await waitFor(() => expect(screen.getByRole('status').textContent).toBe('ปิดใช้งาน ประปา แล้ว'));
 });
