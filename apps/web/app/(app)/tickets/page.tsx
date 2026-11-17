@@ -61,7 +61,28 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           ))}
         </nav>
       )}
-      <TicketTable items={items} />
+      <TicketTable
+        items={items}
+        empty={
+          tab === 'mine' ? (
+            <>
+              <p>ยังไม่มีงานที่มอบหมายให้คุณ</p>
+              <Link href={href({ tab: 'queue' })}>ดูคิวใบใหม่ที่รอช่างรับ</Link>
+            </>
+          ) : tab === 'queue' ? (
+            <p>ไม่มีใบใหม่รอรับงาน</p>
+          ) : status ? (
+            <p>ไม่มีใบแจ้งซ่อมในสถานะ "{STATUS_LABELS[status]}"</p>
+          ) : (
+            <>
+              <p>ยังไม่มีใบแจ้งซ่อม</p>
+              <Link className="button" href="/tickets/new">
+                แจ้งซ่อมใบแรก
+              </Link>
+            </>
+          )
+        }
+      />
       {(cursor || nextCursor) && (
         <nav className="pager" aria-label="หน้า">
           {cursor && <Link href={href(keep)}>หน้าแรก</Link>}

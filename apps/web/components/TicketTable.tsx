@@ -1,8 +1,9 @@
 import { PRIORITY_LABELS, STATUS_LABELS, formatThaiDateTime, type Ticket } from '@repair/core';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
-export function TicketTable({ items }: { items: Ticket[] }) {
-  if (items.length === 0) return <p className="panel empty">ยังไม่มีใบแจ้งซ่อม</p>;
+export function TicketTable({ items, empty }: { items: Ticket[]; empty: ReactNode }) {
+  if (items.length === 0) return <div className="panel empty">{empty}</div>;
   return (
     <div className="table-wrap ticket-table">
       <table>
@@ -19,7 +20,9 @@ export function TicketTable({ items }: { items: Ticket[] }) {
           {items.map((t) => (
             <tr key={t.id}>
               <td className="nowrap">
-                <Link href={`/tickets/${t.id}`}>{t.ticketNo}</Link>
+                <Link className="row-link" href={`/tickets/${t.id}`}>
+                  {t.ticketNo}
+                </Link>
               </td>
               <td className="ticket-subject">{t.title}</td>
               <td>
