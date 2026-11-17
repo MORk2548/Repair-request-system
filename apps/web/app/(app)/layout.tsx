@@ -6,6 +6,7 @@ import { NotificationBell } from '../../components/NotificationBell';
 import { SideNav, type NavLink } from '../../components/SideNav';
 import { SidebarMenu } from '../../components/SidebarMenu';
 import { SignOutButton } from '../../components/SignOutButton';
+import { Toaster } from '../../components/Toast';
 import { getSession } from '../../lib/session';
 import { createServerDb } from '../../lib/supabase-server';
 
@@ -64,6 +65,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
         </SidebarMenu>
       </aside>
       <NotificationBell userId={user.id} />
+      <Toaster />
       <main id="main" tabIndex={-1}>
         {children}
       </main>

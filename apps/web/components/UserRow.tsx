@@ -4,6 +4,7 @@ import { adminUpdateUser, type Department } from '@repair/api';
 import { ROLES, ROLE_LABELS, updateUserSchema, type AdminUser, type Role } from '@repair/core';
 import { useState, type FormEvent } from 'react';
 import { Field, fieldErrors } from './Field';
+import { toast } from './Toast';
 import { ActionError, useAction } from './useAction';
 
 const COLUMNS = 6;
@@ -23,7 +24,12 @@ export function UserRow({ user, departments, isSelf }: { user: AdminUser; depart
     );
   }
 
-  const toggle = () => run((db) => adminUpdateUser(db, { userId: user.id, isActive: !user.isActive })).then((ok) => ok && setMode('view'));
+  const toggle = () => run((db) => adminUpdateUser(db, { userId: user.id, isActive: !user.isActive }))
+      .then((ok) => {
+        if (!ok) return;
+        setMode('view');
+        toast(`${user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}บัญชี ${user.displayName} แล้ว`);
+      });
 
   return (
     <tr>
@@ -84,7 +90,9 @@ function UserEditForm({ user, departments, isSelf, onDone }: { user: AdminUser; 
     });
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setErrors({});
-    if (await run((db) => adminUpdateUser(db, parsed.data))) onDone();
+    if (!(await run((db) => adminUpdateUser(db, parsed.data)))) return;
+    toast(`บันทึกข้อมูล ${parsed.data.displayName ?? user.displayName} แล้ว`);
+    onDone();
   }
 
   return (

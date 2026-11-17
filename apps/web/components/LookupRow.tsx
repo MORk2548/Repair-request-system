@@ -4,6 +4,7 @@ import { saveCategory, saveDepartment, type Db } from '@repair/api';
 import { categorySchema, departmentSchema } from '@repair/core';
 import { useState, type FormEvent } from 'react';
 import { Field, fieldErrors } from './Field';
+import { toast } from './Toast';
 import { ActionError, useAction } from './useAction';
 
 export type LookupKind = 'department' | 'category';
@@ -39,7 +40,11 @@ export function LookupRow({ kind, item }: { kind: LookupKind; item: Item & { id:
           <button type="button" className="button button-secondary" onClick={() => setEditing(true)}>
             แก้ไข
           </button>
-          <button type="button" className="button button-secondary" disabled={pending} aria-busy={pending} onClick={() => void run((db) => save(db, kind, { ...item, isActive: !item.isActive }))}>
+          <button type="button" className="button button-secondary" disabled={pending} aria-busy={pending} onClick={() =>
+              void run((db) => save(db, kind, { ...item, isActive: !item.isActive })).then(
+                (ok) => ok && toast(`${item.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${item.name} แล้ว`),
+              )
+            }>
             {item.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
           </button>
         </div>
@@ -63,6 +68,7 @@ export function LookupForm({ kind, item, onDone }: { kind: LookupKind; item?: It
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setErrors({});
     if (!(await run((db) => save(db, kind, value)))) return;
+    toast(`${item ? 'บันทึก' : 'เพิ่ม'}${kind === 'category' ? 'หมวด' : 'แผนก'} ${name.trim()} แล้ว`);
     if (!item) {
       setName('');
       setSortOrder('0');
