@@ -419,6 +419,20 @@ td .button { min-height: 2.75rem; }
 .ticket-table a { font-weight: 600; font-variant-numeric: tabular-nums; }
 td .stack { min-width: 12rem; }
 
+/* Report: horizontal bars inside the count tables */
+
+.count-table th[scope="row"] { width: 40%; white-space: normal; }
+.bar-cell { display: flex; align-items: center; gap: .75rem; min-width: 12rem; }
+.bar-track { flex: 1; height: .625rem; border-radius: 999px; background: var(--surface-soft); overflow: hidden; }
+.bar { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: var(--primary); }
+.bar-new { background: var(--primary-dark); }
+.bar-assigned { background: var(--assigned); }
+.bar-in_progress { background: var(--warning); }
+.bar-done { background: var(--success); }
+.bar-closed, .bar-cancelled { background: var(--muted); }
+.bar-value { min-width: 5.5rem; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bar-value .muted { font-weight: 400; }
+
 /* Guest pages (login) */
 
 .guest { min-height: 100dvh; margin: 0 auto; display: grid; place-items: center; padding: 1rem; }

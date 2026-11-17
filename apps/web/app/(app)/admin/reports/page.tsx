@@ -1,5 +1,6 @@
 import { getTicketSummary } from '@repair/api';
 import { STATUS_LABELS, bangkokMonthRange, dateRangeSchema } from '@repair/core';
+import { CountTable } from '../../../../components/CountTable';
 import { getSession } from '../../../../lib/session';
 
 type Search = { from?: string; to?: string };
@@ -59,42 +60,23 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       <CountTable
         caption="ตามสถานะ"
         heading="สถานะ"
-        rows={summary.byStatus.map((s) => ({ key: s.status, label: STATUS_LABELS[s.status], count: s.count }))}
+        total={summary.total}
+        rows={summary.byStatus.map((s) => ({ key: s.status, label: STATUS_LABELS[s.status], count: s.count, tone: s.status }))}
       />
       <CountTable
         caption="ตามหมวด"
         heading="หมวด"
+        total={summary.total}
+        sorted
         rows={summary.byCategory.map((c) => ({ key: String(c.categoryId), label: c.name, count: c.count }))}
       />
       <CountTable
         caption="ตามช่าง"
         heading="ช่าง"
+        total={summary.total}
+        sorted
         rows={summary.byAssignee.map((a) => ({ key: a.assigneeId ?? 'none', label: a.name ?? 'ยังไม่มอบหมาย', count: a.count }))}
       />
-    </div>
-  );
-}
-
-function CountTable({ caption, heading, rows }: { caption: string; heading: string; rows: { key: string; label: string; count: number }[] }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <caption>{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{heading}</th>
-            <th scope="col">จำนวน</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key}>
-              <th scope="row">{r.label}</th>
-              <td>{r.count}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
