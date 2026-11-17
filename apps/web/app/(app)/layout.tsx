@@ -34,6 +34,9 @@ export default async function SignedInLayout({ children }: { children: ReactNode
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main">
+        ข้ามไปยังเนื้อหาหลัก
+      </a>
       <aside className="sidebar" aria-label="แถบด้านข้าง">
         <Link href="/tickets" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -61,7 +64,9 @@ export default async function SignedInLayout({ children }: { children: ReactNode
         </SidebarMenu>
       </aside>
       <NotificationBell userId={user.id} />
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }
